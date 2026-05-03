@@ -2,21 +2,25 @@ import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
-
 import { useColorScheme } from '@/hooks/use-color-scheme';
-
-export const unstable_settings = {
-  anchor: '(tabs)',
-};
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
+  // 테스트를 위해 true로 설정 (로그인이 되어있다고 가정하여 홈 화면 출력)
+  const isLoggedIn = true;
+
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+      <Stack screenOptions={{ headerShown: false }}>
+        {isLoggedIn ? (
+          // 로그인 되었을 때 보여줄 화면들
+          <Stack.Screen name="(tabs)" />
+        ) : (
+          // 로그인 안 되었을 때 보여줄 화면들
+          <Stack.Screen name="(auth)/login" />
+        )}
+        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>
