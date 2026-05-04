@@ -8,7 +8,7 @@ export default function Login() {
 
       <Button
         title="Login (테스트)"
-        onPress={() => router.replace("/(tabs)")}
+        onPress={() => router.replace("/(tabs)/home")}
       />
     </View>
   );

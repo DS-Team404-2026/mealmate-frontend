@@ -7,8 +7,8 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
-  // 테스트를 위해 true로 설정 (로그인이 되어있다고 가정하여 홈 화면 출력)
-  const isLoggedIn = true;
+  // 테스트를 위해 true로 설정 (로그인이 되어있다고 가정하여 홈 화면으로 이동)
+  const isLoggedIn = false;
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
@@ -20,7 +20,6 @@ export default function RootLayout() {
           // 로그인 안 되었을 때 보여줄 화면들
           <Stack.Screen name="(auth)/login" />
         )}
-        <Stack.Screen name="modal" options={{ presentation: 'modal' }} />
       </Stack>
       <StatusBar style="auto" />
     </ThemeProvider>
