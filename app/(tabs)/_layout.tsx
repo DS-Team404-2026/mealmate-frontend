@@ -1,8 +1,7 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
-import { HapticTab } from '@/components/haptic-tab';
-import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
@@ -13,7 +12,6 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         headerShown: false,
-        tabBarButton: HapticTab,
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
       }}
     >
@@ -22,7 +20,7 @@ export default function TabLayout() {
         options={{
           title: 'Home',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="house.fill" color={color} />
+            <Ionicons size={24} name="home" color={color} />
           ),
         }}
       />
@@ -32,7 +30,7 @@ export default function TabLayout() {
         options={{
           title: 'Explore',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="paperplane.fill" color={color} />
+            <Ionicons size={24} name="search" color={color} />
           ),
         }}
       />
@@ -42,7 +40,7 @@ export default function TabLayout() {
         options={{
           title: 'Cart',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="cart.fill" color={color} />
+            <Ionicons size={24} name="cart" color={color} />
           ),
         }}
       />
@@ -52,7 +50,7 @@ export default function TabLayout() {
         options={{
           title: 'Favourite',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="heart.fill" color={color} />
+            <Ionicons size={24} name="heart" color={color} />
           ),
         }}
       />
@@ -62,7 +60,7 @@ export default function TabLayout() {
         options={{
           title: 'Account',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="person.fill" color={color} />
+            <Ionicons size={24} name="person" color={color} />
           ),
         }}
       />

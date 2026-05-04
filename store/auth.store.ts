@@ -1,3 +1,5 @@
+// 현재 로그인한 유저 정보, 로그인 여부
+
 import { create } from "zustand";
 
 type AuthState = {
