@@ -1,3 +1,5 @@
+// 모든 API 요청에 공통적으로 적용될 기본 주소 및 설정을 관리
+
 import axios from 'axios';
 
 const api = axios.create({
