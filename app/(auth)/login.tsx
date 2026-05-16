@@ -1,13 +1,13 @@
+import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-  View,
+  StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  StyleSheet,
+  View,
 } from "react-native";
-import { router } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
 
 import { Colors } from "@/constants/theme";
 
@@ -101,7 +101,7 @@ export default function Login() {
       <View style={styles.signupContainer}>
         <Text style={styles.signupText}>Create An Account </Text>
 
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push("/(auth)/signup")}>
           <Text style={styles.signupLink}>Sign Up</Text>
         </TouchableOpacity>
       </View>
