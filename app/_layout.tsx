@@ -7,8 +7,9 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 export default function RootLayout() {
   const colorScheme = useColorScheme();
 
-  // 테스트를 위해 true로 설정 (로그인이 되어있다고 가정하여 홈 화면으로 이동)
-  const isLoggedIn = true;
+  // true: 로그인이 되어있다고 가정하여 홈 화면으로 이동
+  // false: 로그인이 되어있지 않다고 가정하여 로그인 화면으로 이동
+  const isLoggedIn = false;
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
