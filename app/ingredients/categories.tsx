@@ -2,9 +2,9 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, TextInput } from 'react-native';
 import { Ionicons, MaterialCommunityIcons, FontAwesome6 } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { Colors } from "@/constants/theme";
 
 // 오리지널 테마 색상 정의
-const THEME_GREEN = '#417D7A';
 const TEXT_PURPLE_BROWN = '#4A3B53';
 
 // 내부 라우팅 명칭(name)은 원본을 유지하디, 화면 표시용 이름(displayName)을 한국어로 안전하게 추가
@@ -26,12 +26,12 @@ export default function CategoryScreen() {
   // 아이콘 팩의 종류에 따라 컴포넌트를 분기 처리하는 헬퍼 함수
   const renderIcon = (type: string, iconName: string) => {
     if (type === 'ionicons') {
-      return <Ionicons name={iconName as any} size={44} color={THEME_GREEN} />;
+      return <Ionicons name={iconName as any} size={44} color={Colors.light.primary} />;
     }
     if (type === 'fa6') {
-      return <FontAwesome6 name={iconName as any} size={40} color={THEME_GREEN} />;
+      return <FontAwesome6 name={iconName as any} size={40} color={Colors.light.primary} />;
     }
-    return <MaterialCommunityIcons name={iconName as any} size={48} color={THEME_GREEN} />;
+    return <MaterialCommunityIcons name={iconName as any} size={48} color={Colors.light.primary} />;
   };
 
   return (
@@ -67,13 +67,11 @@ export default function CategoryScreen() {
         renderItem={({ item }) => (
           <TouchableOpacity 
             style={styles.categoryItem}
-            // 💡 파일 시스템 라우팅 매핑용 name은 영문 규격 그대로 안전하게 전달
             onPress={() => router.push({ pathname: '/ingredients/[category]', params: { category: item.name } })}
           >
             <View style={styles.iconContainer}>
               {renderIcon(item.type, item.icon)}
             </View>
-            {/* 💡 사용자가 보는 텍스트 라벨만 한국어로 정교하게 치환 */}
             <Text style={styles.categoryName}>{item.displayName}</Text>
           </TouchableOpacity>
         )}

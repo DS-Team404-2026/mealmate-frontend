@@ -1,10 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
-
-// 이전 화면들과 통일된 시안 테마 색상 고정
-const THEME_GREEN = '#417D7A';
-const LIGHT_BG = '#F4F9F8';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors } from "@/constants/theme";
 
 export default function ProfileScreen() {
   // 1. 주거 환경 및 장비 (복수 선택 가능)
@@ -69,7 +66,7 @@ export default function ProfileScreen() {
       {/* 상단 프로필 헤더 - 이름 변경 반영 */}
       <View style={styles.profileHeader}>
         <View style={styles.avatarContainer}>
-          <Ionicons name="person-circle-outline" size={80} color={THEME_GREEN} />
+          <Ionicons name="person-circle-outline" size={80} color={Colors.light.primary} />
         </View>
         <Text style={styles.userName}>편도나 님</Text>
         <Text style={styles.userSub}>나에게 딱 맞는 스마트 레시피 분석 인프라</Text>
@@ -137,7 +134,7 @@ export default function ProfileScreen() {
             <TextInput style={styles.input} keyboardType="numeric" value={bmiValue} onChangeText={setBmiValue} placeholder="22.0" />
           </View>
         )}
-        <Text style={styles.resultDisplayBlock}>현재 설정된 BMI 지수: <Text style={{ color: THEME_GREEN, fontWeight: '800' }}>{bmiValue}</Text></Text>
+        <Text style={styles.resultDisplayBlock}>현재 설정된 BMI 지수: <Text style={{ color: Colors.light.primary, fontWeight: '800' }}>{bmiValue}</Text></Text>
       </View>
 
       {/* 섹션: 혈압 및 혈당 정보 - 아이콘 제거 */}
@@ -190,7 +187,7 @@ export default function ProfileScreen() {
             const isChecked = diseases.includes(item);
             return (
               <TouchableOpacity key={item} style={styles.checkboxRow} onPress={() => toggleDisease(item)}>
-                <Ionicons name={isChecked ? "checkbox" : "square-outline"} size={22} color={THEME_GREEN} />
+                <Ionicons name={isChecked ? "checkbox" : "square-outline"} size={22} color={Colors.light.primary} />
                 <Text style={styles.checkboxLabel}>{item}</Text>
               </TouchableOpacity>
             );
@@ -234,7 +231,7 @@ export default function ProfileScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#FFFFFF' },
-  profileHeader: { alignItems: 'center', paddingVertical: 30, backgroundColor: LIGHT_BG, borderBottomLeftRadius: 30, borderBottomRightRadius: 30, marginBottom: 15 },
+  profileHeader: { alignItems: 'center', paddingVertical: 30, backgroundColor: Colors.light.background, borderBottomLeftRadius: 30, borderBottomRightRadius: 30, marginBottom: 15 },
   avatarContainer: { marginTop: 10 },
   userName: { fontSize: 20, fontWeight: '800', color: '#222', marginTop: 5 },
   userSub: { fontSize: 12, color: '#666', marginTop: 4 },
@@ -246,30 +243,30 @@ const styles = StyleSheet.create({
   
   chipGrid: { flexDirection: 'row', flexWrap: 'wrap' },
   chip: { backgroundColor: '#F5F5F5', paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, marginRight: 8, marginBottom: 8, borderWidth: 1, borderColor: '#E8E8E8' },
-  chipActive: { backgroundColor: '#E8F2F1', borderColor: THEME_GREEN },
+  chipActive: { backgroundColor: '#E8F2F1', borderColor: Colors.light.primary },
   chipText: { fontSize: 13, color: '#666', fontWeight: '500' },
-  chipTextActive: { color: THEME_GREEN, fontWeight: '700' },
+  chipTextActive: { color: Colors.light.primary, fontWeight: '700' },
   
   rowContainer: { flexDirection: 'row', justifyContent: 'space-between' },
   radioCell: { flex: 1, backgroundColor: '#F5F5F5', padding: 12, borderRadius: 10, alignItems: 'center', marginHorizontal: 4 },
-  radioCellActive: { backgroundColor: THEME_GREEN },
+  radioCellActive: { backgroundColor: Colors.light.primary },
   radioText: { fontSize: 14, color: '#666', fontWeight: '600' },
   radioTextActive: { color: '#fff', fontWeight: '700' },
 
   tabButton: { flex: 1, paddingVertical: 10, backgroundColor: '#F5F5F5', alignItems: 'center', borderRadius: 8, marginHorizontal: 4 },
-  tabButtonActive: { backgroundColor: '#E8F2F1', borderWidth: 1, borderColor: THEME_GREEN },
+  tabButtonActive: { backgroundColor: '#E8F2F1', borderWidth: 1, borderColor: Colors.light.primary },
   tabButtonText: { fontSize: 12, color: '#777', fontWeight: '600' },
-  tabButtonTextActive: { color: THEME_GREEN, fontWeight: '700' },
+  tabButtonTextActive: { color: Colors.light.primary, fontWeight: '700' },
 
   inlineForm: { flexDirection: 'row', alignItems: 'flex-end', marginBottom: 10 },
-  calcActionBtn: { backgroundColor: THEME_GREEN, paddingVertical: 13, paddingHorizontal: 16, borderRadius: 10, justifyContent: 'center' },
+  calcActionBtn: { backgroundColor: Colors.light.primary, paddingVertical: 13, paddingHorizontal: 16, borderRadius: 10, justifyContent: 'center' },
   calcActionText: { color: '#fff', fontWeight: '700', fontSize: 14 },
-  resultDisplayBlock: { backgroundColor: LIGHT_BG, padding: 12, borderRadius: 10, textAlign: 'center', fontSize: 13, color: '#444', fontWeight: '600', marginTop: 5 },
+  resultDisplayBlock: { backgroundColor: Colors.light.background, padding: 12, borderRadius: 10, textAlign: 'center', fontSize: 13, color: '#444', fontWeight: '600', marginTop: 5 },
 
   checkboxGrid: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 5 },
   checkboxRow: { flexDirection: 'row', alignItems: 'center', flex: 1 },
   checkboxLabel: { fontSize: 14, fontWeight: '600', color: '#333', marginLeft: 6 },
 
-  saveMainButton: { backgroundColor: THEME_GREEN, marginHorizontal: 20, marginTop: 20, padding: 16, borderRadius: 14, alignItems: 'center', elevation: 3 },
+  saveMainButton: { backgroundColor: Colors.light.primary, marginHorizontal: 20, marginTop: 20, padding: 16, borderRadius: 14, alignItems: 'center', elevation: 3 },
   saveMainText: { color: '#fff', fontSize: 16, fontWeight: '800' }
 });

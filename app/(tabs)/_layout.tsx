@@ -11,8 +11,6 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
   const currentTheme = Colors[colorScheme ?? 'light'];
   const insets = useSafeAreaInsets();
-
-  // 기기 하단 내비게이션 바 공간을 고려한 동적 높이 설정
   const BASE_HEIGHT = 62;
   const TAB_BAR_HEIGHT = BASE_HEIGHT + insets.bottom;
 
@@ -29,7 +27,7 @@ export default function TabLayout() {
             backgroundColor: currentTheme.background,
             borderTopColor: colorScheme === 'dark' ? '#26292A' : '#E0E0E0',
             height: TAB_BAR_HEIGHT,
-            paddingBottom: insets.bottom + 6, // 텍스트 라벨이 하단 내비바와 겹치지 않게 패딩 조정
+            paddingBottom: insets.bottom + 6,
           }
         ],
         tabBarLabelStyle: styles.tabBarLabel,
@@ -59,7 +57,6 @@ export default function TabLayout() {
         name="scan"
         options={{
           title: 'Scan',
-          // 아이콘 컨테이너 내부의 레이아웃 왜곡을 막기 위해 상위 스타일 오버라이드
           tabBarIconStyle: styles.scanIconWrapper,
           tabBarIcon: ({ focused }) => (
             <View 
@@ -126,13 +123,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginTop: 4,
   },
-  // Scan 스크린 아이콘 전용 기본 컴포넌트 마진 취소
   scanIconWrapper: {
     overflow: 'visible',
     zIndex: 10,
   },
   scanButtonContainer: {
-    // 완전한 독립 배치를 위해 기존 탭 영역 내에서 중앙 배치 가이드 변경
     transform: [{ translateY: -16 }], 
     width: 56,
     height: 56,

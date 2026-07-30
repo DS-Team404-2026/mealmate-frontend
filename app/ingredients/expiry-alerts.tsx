@@ -12,10 +12,10 @@ export default function ExpiryAlertsScreen() {
   const { ingredients } = useIngredientStore();
   const [alertDays, setAlertDays] = useState('3일 전');
 
-  // 💡 중복 키 오류 유발 어레이를 제거하고, 중앙 스토어 데이터만 깔끔하게 바라보도록 연동
+  // 중복 키 오류 유발 어레이를 제거하고, 중앙 스토어 데이터만 깔끔하게 바라보도록 연동
   const allIngredients = [...ingredients];
 
-  // 💡 D-Day 연산 함수 (시연 기준일: 2026-06-16로 수정 완료)
+  // D-Day 연산 함수 (시연 기준일: 2026-06-16로 수정 완료)
   const calculateDDay = (expiryDateStr: string) => {
     const today = new Date('2026-06-16');
     const expiry = new Date(expiryDateStr);

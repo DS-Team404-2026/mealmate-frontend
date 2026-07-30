@@ -1,11 +1,9 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { useIngredientStore } from '@/store/ingredient.store';
 import { useRouter } from 'expo-router';
+import { Colors } from "@/constants/theme";
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const THEME_GREEN = '#417D7A';
-const LIGHT_BG = '#F4F9F8';
 
 const RECIPE_POOL = [
   {
@@ -162,7 +160,7 @@ export default function RecipeRecommendScreen() {
         <View style={styles.actionArea}>
           {isGenerating ? (
             <View style={styles.loadingBox}>
-              <ActivityIndicator size="large" color={THEME_GREEN} />
+              <ActivityIndicator size="large" color={Colors.light.primary} />
               <Text style={styles.loadingText}>{loadingText}</Text>
             </View>
           ) : (
@@ -199,7 +197,6 @@ export default function RecipeRecommendScreen() {
                   ))}
                 </View>
 
-                {/* 💡 TS 컴파일 에러 해결: Expo Router의 정식 Object 타입 라우팅 적용 완료 */}
                 <TouchableOpacity 
                   style={styles.detailButton} 
                   onPress={() => router.push({ pathname: "/recipes/[id]", params: { id: recipe.id } })}
@@ -224,7 +221,7 @@ export default function RecipeRecommendScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  header: { paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20, backgroundColor: LIGHT_BG, borderBottomLeftRadius: 25, borderBottomRightRadius: 25 },
+  header: { paddingHorizontal: 20, paddingTop: 60, paddingBottom: 20, backgroundColor: Colors.light.background, borderBottomLeftRadius: 25, borderBottomRightRadius: 25 },
   headerTitle: { fontSize: 26, fontWeight: '900', color: '#111' },
   headerSub: { fontSize: 14, color: '#666', marginTop: 6, fontWeight: '500' },
   contextCard: { margin: 20, padding: 18, backgroundColor: '#fff', borderRadius: 16, borderWidth: 1, borderColor: '#EAEAEA', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 8 },
@@ -236,12 +233,12 @@ const styles = StyleSheet.create({
   ingredientTag: { backgroundColor: '#FFF5E5', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, marginRight: 8, borderWidth: 1, borderColor: '#FFE4B5' },
   ingredientTagText: { fontSize: 13, color: '#D97706', fontWeight: '700' },
   profileTag: { backgroundColor: '#F0F7F6', paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, marginRight: 8, marginBottom: 8 },
-  profileTagText: { fontSize: 13, color: THEME_GREEN, fontWeight: '600' },
+  profileTagText: { fontSize: 13, color: Colors.light.primary, fontWeight: '600' },
   actionArea: { paddingHorizontal: 20, marginTop: 20, alignItems: 'center' },
-  generateButton: { backgroundColor: THEME_GREEN, width: '100%', paddingVertical: 18, borderRadius: 16, justifyContent: 'center', alignItems: 'center', elevation: 4 },
+  generateButton: { backgroundColor: Colors.light.primary, width: '100%', paddingVertical: 18, borderRadius: 16, justifyContent: 'center', alignItems: 'center', elevation: 4 },
   generateButtonText: { color: '#fff', fontSize: 18, fontWeight: '800' },
   loadingBox: { alignItems: 'center', paddingVertical: 40 },
-  loadingText: { textAlign: 'center', marginTop: 16, fontSize: 14, color: '#417D7A', lineHeight: 22, fontWeight: '700' },
+  loadingText: { textAlign: 'center', marginTop: 16, fontSize: 14, color: Colors.light.primary, lineHeight: 22, fontWeight: '700' },
   resultArea: { paddingHorizontal: 20, marginTop: 10 },
   resultHeader: { fontSize: 18, fontWeight: '800', color: '#111', marginBottom: 16 },
   recipeCard: { backgroundColor: '#fff', borderRadius: 20, overflow: 'hidden', marginBottom: 24, borderWidth: 1, borderColor: '#EEE', elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.06, shadowRadius: 10 },
@@ -251,12 +248,12 @@ const styles = StyleSheet.create({
   metaBadge: { backgroundColor: '#F5F5F5', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, marginRight: 8 },
   metaBadgeText: { fontSize: 11, color: '#666', fontWeight: '600' },
   recipeTitle: { fontSize: 20, fontWeight: '800', color: '#222', marginBottom: 12 },
-  reasonBox: { backgroundColor: LIGHT_BG, padding: 12, borderRadius: 10, marginBottom: 12 },
-  reasonTitle: { fontSize: 13, fontWeight: '800', color: THEME_GREEN, marginBottom: 4 },
+  reasonBox: { backgroundColor: Colors.light.background, padding: 12, borderRadius: 10, marginBottom: 12 },
+  reasonTitle: { fontSize: 13, fontWeight: '800', color: Colors.light.primary, marginBottom: 4 },
   reasonText: { fontSize: 13, color: '#444', lineHeight: 19 },
   recipeTag: { fontSize: 13, color: '#888', marginRight: 10, fontWeight: '500', marginBottom: 16 },
   detailButton: { alignSelf: 'flex-end', paddingVertical: 6 },
-  detailButtonText: { color: THEME_GREEN, fontSize: 14, fontWeight: '700' },
-  resetButton: { paddingVertical: 15, marginTop: 10, backgroundColor: '#E8F2F1', borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  resetButtonText: { fontSize: 14, color: THEME_GREEN, fontWeight: '700' }
+  detailButtonText: { color: Colors.light.primary, fontSize: 14, fontWeight: '700' },
+  resetButton: { paddingVertical: 15, marginTop: 10, backgroundColor: Colors.light.background, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+  resetButtonText: { fontSize: 14, color: Colors.light.primary, fontWeight: '700' }
 });

@@ -18,9 +18,9 @@ import {
 } from "react-native";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const CARD_WIDTH = SCREEN_WIDTH - 40; // 양옆 마진 20씩 제외
+const CARD_WIDTH = SCREEN_WIDTH - 40;
 
-// 원래 배너 UI 데이터 및 구조 100% 유지 (한글 규칙 반영)
+// mock 데이터 
 const TODAY_RECOMMENDATIONS = [
   {
     id: "rec-1",
@@ -50,9 +50,6 @@ export default function HomeScreen() {
   const { ingredients } = useIngredientStore();
   const [activeMenuIndex, setActiveMenuIndex] = useState(0);
 
-  // 💡 [중복 키 에러 해결 핵심]
-  // 스토어 외부에서 하드코딩하던 demo-3, demo-4를 제거하고, 오직 스토어 데이터만 안전하게 복사합니다.
-  // 중복 아이디가 완전히 사라지므로 뻘간 에러 창이 영구적으로 뜨지 않습니다.
   const displayIngredients = [...ingredients];
 
   const handleMenuScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
@@ -63,7 +60,6 @@ export default function HomeScreen() {
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* 상단 헤더 - 원래 디자인 백퍼센트 복원 */}
       <View style={styles.header}>
         <Ionicons name="menu-outline" size={28} color="#000" />
         <Image

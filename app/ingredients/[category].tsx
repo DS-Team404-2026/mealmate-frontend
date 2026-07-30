@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, Image, TextInput, Dimensions, Modal, ScrollView } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useIngredientStore, Ingredient } from '@/store/ingredient.store';
 
@@ -148,7 +148,7 @@ export default function IngredientListScreen() {
         contentContainerStyle={styles.listContent}
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
-            {/* 💡 빈 리스트 안내 문구 한글화 */}
+            {/* 빈 리스트 안내 문구 한글화 */}
             <Text style={styles.emptyText}>등록된 식재료가 없습니다.{"\n"}우상단 &apos;+&apos; 아이콘을 눌러 등록해 보세요!</Text>
           </View>
         }
@@ -165,7 +165,7 @@ export default function IngredientListScreen() {
 
               <View style={styles.dateRow}>
                 <View style={styles.grayDot} />
-                {/* 💡 날짜 라벨 한글화 */}
+                {/* 날짜 라벨 한글화 */}
                 <Text style={styles.cardDate}>소비기한 {item.expiryDate}</Text>
               </View>
             </View>
