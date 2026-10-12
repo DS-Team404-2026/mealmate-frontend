@@ -1,149 +1,73 @@
-import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-} from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-
+import React, { useState } from "react";
+import { StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator, Alert } from "react-native";
 import { Colors } from "@/constants/theme";
+import { useAuthStore } from "@/store/auth.store";
 
-export default function SignupScreen() {
-  const [securePassword, setSecurePassword] = useState(true);
-  const [secureConfirmPassword, setSecureConfirmPassword] =
-    useState(true);
+export default function Signup() {
+  const [email, setEmail] = useState("");
+  const [nickname, setNickname] = useState("");
+  const [password, setPassword] = useState("");
+  const [passwordConfirm, setPasswordConfirm] = useState("");
+  
+  const { signup, isLoading } = useAuthStore(); // 스토어에서 함수 불러오기
+
+  const handleSignup = async () => {
+    if (!email || !nickname || !password || !passwordConfirm) {
+      Alert.alert("알림", "모든 필드를 입력해주세요.");
+      return;
+    }
+    if (password !== passwordConfirm) {
+      Alert.alert("알림", "비밀번호가 서로 일치하지 않습니다.");
+      return;
+    }
+
+    // 스토어의 signup 함수 실행
+    const isSuccess = await signup({
+      email: email,
+      password: password,
+      password_confirm: passwordConfirm,
+      nickname: nickname
+    });
+
+    if (isSuccess) {
+      router.back(); // 회원가입 성공 시 이전(로그인) 화면으로 돌아가기
+    }
+  };
 
   return (
     <View style={styles.container}>
-      {/* Title */}
-      <Text style={styles.title}>
-        Create an{"\n"}
-        account
-      </Text>
+      <Text style={styles.title}>계정 생성</Text>
 
-      {/* Email Input */}
       <View style={styles.inputContainer}>
-        <Ionicons
-          name="person"
-          size={20}
-          color="#7A7A7A"
-          style={styles.inputIcon}
-        />
-
-        <TextInput
-          placeholder="Username or Email"
-          placeholderTextColor="#7A7A7A"
-          style={styles.input}
-        />
+        <Ionicons name="mail" size={20} color="#7A7A7A" style={styles.inputIcon} />
+        <TextInput placeholder="이메일" style={styles.input} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
       </View>
 
-      {/* Password Input */}
       <View style={styles.inputContainer}>
-        <Ionicons
-          name="lock-closed"
-          size={20}
-          color="#7A7A7A"
-          style={styles.inputIcon}
-        />
-
-        <TextInput
-          placeholder="Password"
-          placeholderTextColor="#7A7A7A"
-          secureTextEntry={securePassword}
-          style={styles.input}
-        />
-
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() => setSecurePassword((prev) => !prev)}
-        >
-          <Ionicons
-            name={securePassword ? "eye-off-outline" : "eye-outline"}
-            size={22}
-            color="#7A7A7A"
-          />
-        </TouchableOpacity>
+        <Ionicons name="person" size={20} color="#7A7A7A" style={styles.inputIcon} />
+        <TextInput placeholder="닉네임" style={styles.input} value={nickname} onChangeText={setNickname} />
       </View>
 
-      {/* Confirm Password Input */}
       <View style={styles.inputContainer}>
-        <Ionicons
-          name="lock-closed"
-          size={20}
-          color="#7A7A7A"
-          style={styles.inputIcon}
-        />
-
-        <TextInput
-          placeholder="Confirm Password"
-          placeholderTextColor="#7A7A7A"
-          secureTextEntry={secureConfirmPassword}
-          style={styles.input}
-        />
-
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() =>
-            setSecureConfirmPassword((prev) => !prev)
-          }
-        >
-          <Ionicons
-            name={
-              secureConfirmPassword
-                ? "eye-off-outline"
-                : "eye-outline"
-            }
-            size={22}
-            color="#7A7A7A"
-          />
-        </TouchableOpacity>
+        <Ionicons name="lock-closed" size={20} color="#7A7A7A" style={styles.inputIcon} />
+        <TextInput placeholder="비밀번호" secureTextEntry style={styles.input} value={password} onChangeText={setPassword} />
       </View>
 
-      {/* Terms Text */}
-      <Text style={styles.termsText}>
-        By clicking the{" "}
-        <Text style={styles.registerText}>Register</Text> button,
-        you agree{"\n"}to the public offer
-      </Text>
+      <View style={styles.inputContainer}>
+        <Ionicons name="checkmark-circle" size={20} color="#7A7A7A" style={styles.inputIcon} />
+        <TextInput placeholder="비밀번호 확인" secureTextEntry style={styles.input} value={passwordConfirm} onChangeText={setPasswordConfirm} />
+      </View>
 
-      {/* Create Account Button */}
-      <TouchableOpacity style={styles.createButton}>
-        <Text style={styles.createButtonText}>
-          Create Account
-        </Text>
+      <TouchableOpacity style={[styles.signupButton, isLoading && { opacity: 0.7 }]} onPress={handleSignup} disabled={isLoading}>
+        {isLoading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.signupButtonText}>가입하기</Text>}
       </TouchableOpacity>
 
-      {/* Divider */}
-      <Text style={styles.divider}>- OR Continue with -</Text>
-
-      {/* Social Login */}
-      <View style={styles.socialContainer}>
-        <TouchableOpacity style={styles.socialButton}>
-          <Ionicons name="logo-google" size={28} color="#000" />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.socialButton}>
-          <Ionicons name="logo-apple" size={28} color="#000" />
-        </TouchableOpacity>
-
-        <TouchableOpacity style={styles.socialButton}>
-          <Ionicons name="chatbubble" size={24} color="#000" />
-        </TouchableOpacity>
-      </View>
-
-      {/* Bottom Text */}
-      <View style={styles.bottomContainer}>
-        <Text style={styles.bottomText}>
-          Already have an account?{" "}
-        </Text>
-
-        <TouchableOpacity
-          onPress={() => router.push("/(auth)/login")}
-        >
-          <Text style={styles.bottomLink}>Login</Text>
+      <View style={styles.loginContainer}>
+        <Text style={styles.loginText}>이미 계정이 있으신가요? </Text>
+        <TouchableOpacity onPress={() => router.back()}>
+          <Text style={styles.loginLink}>로그인</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -151,110 +75,14 @@ export default function SignupScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F8F8F8",
-    paddingHorizontal: 30,
-    paddingTop: 70,
-  },
-
-  title: {
-    fontSize: 52,
-    fontWeight: "800",
-    color: "#000",
-    lineHeight: 58,
-    marginBottom: 40,
-  },
-
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#CFCFCF",
-    borderRadius: 14,
-    backgroundColor: "#FFF",
-    paddingHorizontal: 15,
-    height: 58,
-    marginBottom: 18,
-  },
-
-  inputIcon: {
-    marginRight: 10,
-  },
-
-  input: {
-    flex: 1,
-    fontSize: 15,
-    color: "#000",
-  },
-
-  termsText: {
-    color: "#6F6F6F",
-    fontSize: 14,
-    lineHeight: 22,
-    marginTop: 5,
-    marginBottom: 35,
-  },
-
-  registerText: {
-    color: Colors.light.primary,
-  },
-
-  createButton: {
-    backgroundColor: Colors.light.primary,
-    height: 58,
-    borderRadius: 8,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 70,
-  },
-
-  createButtonText: {
-    color: "#FFF",
-    fontSize: 22,
-    fontWeight: "700",
-  },
-
-  divider: {
-    textAlign: "center",
-    color: "#666",
-    marginBottom: 30,
-    fontSize: 14,
-  },
-
-  socialContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 18,
-    marginBottom: 40,
-  },
-
-  socialButton: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
-    borderWidth: 1,
-    borderColor: Colors.light.primary,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#FFF",
-  },
-
-  bottomContainer: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  bottomText: {
-    color: "#666",
-    fontSize: 16,
-  },
-
-  bottomLink: {
-    color: Colors.light.primary,
-    fontSize: 16,
-    fontWeight: "700",
-    textDecorationLine: "underline",
-  },
+  container: { flex: 1, backgroundColor: "#F8F8F8", paddingHorizontal: 30, paddingTop: 70 },
+  title: { fontSize: 42, fontWeight: "800", color: "#000", marginBottom: 40 },
+  inputContainer: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "#CFCFCF", borderRadius: 14, backgroundColor: "#FFF", paddingHorizontal: 15, height: 58, marginBottom: 16 },
+  inputIcon: { marginRight: 10 },
+  input: { flex: 1, fontSize: 15, color: "#000" },
+  signupButton: { backgroundColor: Colors.light.primary, height: 58, borderRadius: 8, justifyContent: "center", alignItems: "center", marginTop: 20, marginBottom: 40 },
+  signupButtonText: { color: "#FFF", fontSize: 20, fontWeight: "700" },
+  loginContainer: { flexDirection: "row", justifyContent: "center", alignItems: "center" },
+  loginText: { color: "#666", fontSize: 16 },
+  loginLink: { color: Colors.light.primary, fontSize: 16, fontWeight: "700", textDecorationLine: "underline" },
 });
