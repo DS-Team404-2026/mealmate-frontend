@@ -18,8 +18,8 @@ export default function Login() {
     <View style={styles.container}>
       {/* Title */}
       <Text style={styles.title}>
-        Get{"\n"}
-        Started!
+        지금{"\n"}
+        시작하세요!
       </Text>
 
       {/* Email Input */}
@@ -32,7 +32,7 @@ export default function Login() {
         />
 
         <TextInput
-          placeholder="Username or Email"
+          placeholder="사용자 이름 또는 이메일"
           placeholderTextColor="#7A7A7A"
           style={styles.input}
         />
@@ -48,7 +48,7 @@ export default function Login() {
         />
 
         <TextInput
-          placeholder="Password"
+          placeholder="비밀번호"
           placeholderTextColor="#7A7A7A"
           secureTextEntry={securePassword}
           style={styles.input}
@@ -68,7 +68,7 @@ export default function Login() {
 
       {/* Forgot Password */}
       <TouchableOpacity style={styles.forgotContainer} onPress={() => router.push("/(auth)/forgot-password")}>
-        <Text style={styles.forgotText}>Forgot Password?</Text>
+        <Text style={styles.forgotText}>비밀번호 찾기</Text>
       </TouchableOpacity>
 
       {/* Login Button */}
@@ -76,11 +76,11 @@ export default function Login() {
         style={styles.loginButton}
         onPress={() => router.replace("/(tabs)/home")}
       >
-        <Text style={styles.loginButtonText}>Login</Text>
+        <Text style={styles.loginButtonText}>로그인</Text>
       </TouchableOpacity>
 
       {/* Divider */}
-      <Text style={styles.divider}>- OR Continue with -</Text>
+      <Text style={styles.divider}>- 다른 계정으로 로그인 -</Text>
 
       {/* Social Login */}
       <View style={styles.socialContainer}>
@@ -99,10 +99,10 @@ export default function Login() {
 
       {/* Sign Up */}
       <View style={styles.signupContainer}>
-        <Text style={styles.signupText}>Create An Account </Text>
+        <Text style={styles.signupText}>계정이 없으신가요? </Text>
 
         <TouchableOpacity onPress={() => router.push("/(auth)/signup")}>
-          <Text style={styles.signupLink}>Sign Up</Text>
+          <Text style={styles.signupLink}>회원가입</Text>
         </TouchableOpacity>
       </View>
     </View>

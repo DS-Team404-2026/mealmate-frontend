@@ -15,9 +15,9 @@ export default function ExpiryAlertsScreen() {
   // 중복 키 오류 유발 어레이를 제거하고, 중앙 스토어 데이터만 깔끔하게 바라보도록 연동
   const allIngredients = [...ingredients];
 
-  // D-Day 연산 함수 (시연 기준일: 2026-06-16로 수정 완료)
+  // D-Day 연산 함수 (시연 기준일: 2026-09-07로 수정 완료)
   const calculateDDay = (expiryDateStr: string) => {
-    const today = new Date('2026-06-16');
+    const today = new Date('2026-09-07');
     const expiry = new Date(expiryDateStr);
     const diffTime = expiry.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -74,7 +74,7 @@ export default function ExpiryAlertsScreen() {
                 onPress={async () => {
                   setAlertDays(option);
                   await triggerLocalNotification(option);
-                  Alert.alert('알림 시연 준비', `3초 뒤 스마트폰 상단에 실제 [${option}] 소비기한 푸시 알림이 발송됩니다.`);
+                  Alert.alert('알림 준비', `3초 뒤 스마트폰 상단에 [${option}] 소비기한 푸시 알림이 발송됩니다.`);
                 }}
               >
                 <Text style={isActive ? [styles.optionChipText, styles.optionChipTextActive] : styles.optionChipText}>
