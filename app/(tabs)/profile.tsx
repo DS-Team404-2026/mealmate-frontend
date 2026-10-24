@@ -1,6 +1,6 @@
 import { Colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Alert,
   ScrollView,
@@ -9,30 +9,39 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  ActivityIndicator,
 } from "react-native";
+import { UserService } from "../../services/user.service";
 
 export default function ProfileScreen() {
-  // 1. 주거 환경 및 장비 (복수 선택 가능)
-  const [appliances, setAppliances] = useState<string[]>([
-    "가스레인지",
-    "전자레인지",
-  ]);
+  const [loading, setLoading] = useState(true);
+
+  // 1. 마이페이지 상태
+  const [nickname, setNickname] = useState("");
+  const [housing, setHousing] = useState("자취"); 
+  const [cookingLevel, setCookingLevel] = useState("보통");
+  const [preferences, setPreferences] = useState<string[]>([]);
+  
+  const togglePreference = (item: string) => {
+    setPreferences((prev) =>
+      prev.includes(item) ? prev.filter((p) => p !== item) : [...prev, item],
+    );
+  };
+
+  // 2. 사용자 환경 상태 (조리기구)
+  const [appliances, setAppliances] = useState<string[]>([]);
   const toggleAppliance = (item: string) => {
     setAppliances((prev) =>
       prev.includes(item) ? prev.filter((a) => a !== item) : [...prev, item],
     );
   };
 
-  // 2. 요리 실력 (단일 선택)
-  const [cookingLevel, setCookingLevel] = useState("보통");
-
-  // 3. 건강 수치 (BMI 직접 입력 vs 키/몸무게 계산 분기)
+  // 3. 건강 정보 상태
   const [bmiMode, setBmiMode] = useState<"direct" | "calc">("calc");
-  const [bmiValue, setBmiValue] = useState("22.5");
+  const [bmiValue, setBmiValue] = useState("");
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
 
-  // BMI 계산 로직
   const handleCalculateBMI = () => {
     const h = parseFloat(height) / 100;
     const w = parseFloat(weight);
@@ -45,17 +54,13 @@ export default function ProfileScreen() {
     }
   };
 
-  // 4. 혈압 분기 설정
   const [bloodPressureMode, setBpMode] = useState<"normal" | "value">("normal");
   const [systolic, setBpSystolic] = useState("");
   const [diastolic, setBpDiastolic] = useState("");
   const [bpStage, setBpStage] = useState("정상");
+  const [bloodSugar, setBloodSugar] = useState("");
 
-  // 5. 혈당 수치
-  const [bloodSugar, setBloodSugar] = useState("95");
-
-  // 6. 질환 정보 체크박스 (중복 가능)
-  const [diseases, setDiseases] = useState<string[]>(["고혈압"]);
+  const [diseases, setDiseases] = useState<string[]>([]);
   const [customDisease, setCustomDisease] = useState("");
   const toggleDisease = (item: string) => {
     setDiseases((prev) =>
@@ -63,31 +68,138 @@ export default function ProfileScreen() {
     );
   };
 
-  // 7. 알레르기 텍스트 입력
-  const [allergy, setAllergy] = useState("갑각류, 견과류");
+  const [allergen, setAllergen] = useState("");
 
-  // 8. 입맛/취향/식단 (중복 가능)
-  const [preferences, setPreferences] = useState<string[]>([
-    "한식",
-    "저염",
-    "고단백",
-  ]);
-  const togglePreference = (item: string) => {
-    setPreferences((prev) =>
-      prev.includes(item) ? prev.filter((p) => p !== item) : [...prev, item],
-    );
+  // ==============================
+  // 데이터 불러오기 (GET)
+  // ==============================
+  const fetchAllData = async () => {
+    try {
+      setLoading(true);
+      const [profileRes, envRes, healthRes] = await Promise.all([
+        UserService.getProfile(),
+        UserService.getEnvironment(),
+        UserService.getHealthProfile(),
+      ]);
+
+      // 1. 프로필 정보 바인딩[cite: 4]
+      if (profileRes.data) {
+        setNickname(profileRes.data.nickname || "");
+        setHousing(profileRes.data.housing || "자취");
+        setPreferences(profileRes.data.preference || []);
+        if (profileRes.data.cooking_level === 1) setCookingLevel("초보");
+        else if (profileRes.data.cooking_level === 2) setCookingLevel("보통");
+        else if (profileRes.data.cooking_level === 3) setCookingLevel("숙련");
+      }
+
+      // 2. 조리 환경 바인딩[cite: 6]
+      if (envRes.data) {
+        const activeAppliances = [];
+        if (envRes.data.induction) activeAppliances.push("인덕션");
+        if (envRes.data.microwave) activeAppliances.push("전자레인지");
+        if (envRes.data.airfryer) activeAppliances.push("에어프라이어");
+        if (envRes.data.blender) activeAppliances.push("믹서기");
+        setAppliances(activeAppliances);
+      }
+
+      // 3. 건강 정보 바인딩[cite: 8]
+      if (healthRes.data) {
+        setHeight(healthRes.data.height ? String(healthRes.data.height) : "");
+        setWeight(healthRes.data.weight ? String(healthRes.data.weight) : "");
+        setBmiValue(healthRes.data.bmi ? String(healthRes.data.bmi) : "");
+        setBpStage(healthRes.data.blood_pressure || "정상");
+        setAllergen(healthRes.data.allergen || "");
+        
+        if (healthRes.data.diseases) {
+          if (Array.isArray(healthRes.data.diseases)) {
+            setDiseases(healthRes.data.diseases);
+          } else if (typeof healthRes.data.diseases === "string") {
+            setDiseases((healthRes.data.diseases as string).split(",").map((d) => d.trim()));
+          }
+        }
+      }
+    } catch (error) {
+      console.error("데이터 로딩 에러:", error);
+      Alert.alert("알림", "저장된 프로필 정보를 불러오지 못했습니다.");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSaveProfile = () => {
-    Alert.alert(
-      "저장 완료",
-      "레시피 추천을 위한 개인 맞춤 정보가 성공적으로 반영되었습니다.",
-    );
+  useEffect(() => {
+    fetchAllData();
+  }, []);
+
+  // ==============================
+  // 데이터 저장하기 (PATCH)
+  // ==============================
+  const handleSaveProfile = async () => {
+    try {
+      let levelInt = 2; 
+      if (cookingLevel === "초보") levelInt = 1;
+      if (cookingLevel === "숙련") levelInt = 3;
+
+      // 1. 프로필 수정 페이로드[cite: 5]
+      const profileData = {
+        nickname: nickname,
+        cooking_level: levelInt,
+        housing: housing,
+        preference: preferences,
+      };
+
+      // 2. 환경 수정 페이로드[cite: 7]
+      const envData = {
+        induction: appliances.includes("인덕션"),
+        microwave: appliances.includes("전자레인지"),
+        airfryer: appliances.includes("에어프라이어"),
+        blender: appliances.includes("믹서기"),
+      };
+
+      // 3. 건강 정보 수정 페이로드[cite: 9]
+      const parsedHeight = parseInt(height);
+      const parsedWeight = parseInt(weight);
+
+      const healthData: any = {
+        blood_pressure: bpStage,
+        diseases: [...diseases, customDisease].filter(Boolean), 
+        allergen: allergen, 
+        diets: preferences.filter(p => ["저염", "저당", "채식", "저탄수", "고단백"].includes(p)), 
+      };
+
+      if (!isNaN(parsedHeight)) healthData.height = parsedHeight;
+      if (!isNaN(parsedWeight)) healthData.weight = parsedWeight;
+
+      await Promise.all([
+        UserService.updateProfile(profileData),
+        UserService.updateEnvironment(envData),
+        UserService.updateHealthProfile(healthData),
+      ]);
+
+      Alert.alert(
+        "저장 완료",
+        "레시피 추천을 위한 개인 맞춤 정보가 성공적으로 반영되었습니다."
+      );
+    } catch (error: any) {
+      console.error("저장 실패 상세:", error);
+      let errorMessage = "데이터를 저장하는 중 문제가 발생했습니다.";
+      if (error.response && error.response.data) {
+        errorMessage = JSON.stringify(error.response.data, null, 2);
+      }
+      Alert.alert("저장 실패 (서버 거부 사유)", errorMessage);
+    }
   };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: "center", alignItems: "center" }]}>
+        <ActivityIndicator size="large" color={Colors.light.primary} />
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* 상단 프로필 헤더 - 이름 변경 반영 */}
+      {/* 상단 프로필 헤더 */}
       <View style={styles.profileHeader}>
         <View style={styles.avatarContainer}>
           <Ionicons
@@ -96,15 +208,36 @@ export default function ProfileScreen() {
             color={Colors.light.primary}
           />
         </View>
-        <Text style={styles.userName}>User1 님</Text>
+        <Text style={styles.userName}>{nickname} 님</Text>
         <Text style={styles.userSub}>
           나에게 딱 맞는 스마트 레시피 분석 인프라
         </Text>
       </View>
 
-      {/* 섹션: 주거 환경 및 주방 장비 - 아이콘 제거 */}
+      {/* 주거 형태 */}
       <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>주거 환경 및 보유 장비</Text>
+        <Text style={styles.sectionTitle}>주거 형태</Text>
+        <View style={styles.rowContainer}>
+          {["자취", "가족주거", "기타"].map((item) => {
+            const isSelected = housing === item;
+            return (
+              <TouchableOpacity
+                key={item}
+                style={[styles.radioCell, isSelected && styles.radioCellActive]}
+                onPress={() => setHousing(item)}
+              >
+                <Text style={[styles.radioText, isSelected && styles.radioTextActive]}>
+                  {item}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+
+      {/* 조리기구 환경 */}
+      <View style={styles.sectionCard}>
+        <Text style={styles.sectionTitle}>보유 조리기구 환경</Text>
         <View style={styles.chipGrid}>
           {[
             "가스레인지",
@@ -121,9 +254,7 @@ export default function ProfileScreen() {
                 style={[styles.chip, isSelected && styles.chipActive]}
                 onPress={() => toggleAppliance(item)}
               >
-                <Text
-                  style={[styles.chipText, isSelected && styles.chipTextActive]}
-                >
+                <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
                   {item}
                 </Text>
               </TouchableOpacity>
@@ -132,7 +263,7 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {/* 섹션: 요리 실력 - 아이콘 제거 */}
+      {/* 요리 실력 */}
       <View style={styles.sectionCard}>
         <Text style={styles.sectionTitle}>요리 실력 단계</Text>
         <View style={styles.rowContainer}>
@@ -144,12 +275,7 @@ export default function ProfileScreen() {
                 style={[styles.radioCell, isSelected && styles.radioCellActive]}
                 onPress={() => setCookingLevel(level)}
               >
-                <Text
-                  style={[
-                    styles.radioText,
-                    isSelected && styles.radioTextActive,
-                  ]}
-                >
+                <Text style={[styles.radioText, isSelected && styles.radioTextActive]}>
                   {level}
                 </Text>
               </TouchableOpacity>
@@ -158,39 +284,23 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {/* 섹션: 건강 수치 및 BMI 정보 - 아이콘 제거 */}
+      {/* 신체 상태 및 BMI */}
       <View style={styles.sectionCard}>
         <Text style={styles.sectionTitle}>신체 상태 및 건강 수치 (BMI)</Text>
         <View style={[styles.rowContainer, { marginBottom: 15 }]}>
           <TouchableOpacity
-            style={[
-              styles.tabButton,
-              bmiMode === "calc" && styles.tabButtonActive,
-            ]}
+            style={[styles.tabButton, bmiMode === "calc" && styles.tabButtonActive]}
             onPress={() => setBmiMode("calc")}
           >
-            <Text
-              style={[
-                styles.tabButtonText,
-                bmiMode === "calc" && styles.tabButtonTextActive,
-              ]}
-            >
+            <Text style={[styles.tabButtonText, bmiMode === "calc" && styles.tabButtonTextActive]}>
               키/몸무게 입력 계산
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[
-              styles.tabButton,
-              bmiMode === "direct" && styles.tabButtonActive,
-            ]}
+            style={[styles.tabButton, bmiMode === "direct" && styles.tabButtonActive]}
             onPress={() => setBmiMode("direct")}
           >
-            <Text
-              style={[
-                styles.tabButtonText,
-                bmiMode === "direct" && styles.tabButtonTextActive,
-              ]}
-            >
+            <Text style={[styles.tabButtonText, bmiMode === "direct" && styles.tabButtonTextActive]}>
               BMI 직접 입력
             </Text>
           </TouchableOpacity>
@@ -203,7 +313,7 @@ export default function ProfileScreen() {
               <TextInput
                 style={styles.input}
                 keyboardType="numeric"
-                placeholder="예: 175"
+                placeholder="예: 165"
                 value={height}
                 onChangeText={setHeight}
               />
@@ -213,15 +323,12 @@ export default function ProfileScreen() {
               <TextInput
                 style={styles.input}
                 keyboardType="numeric"
-                placeholder="예: 70"
+                placeholder="예: 55"
                 value={weight}
                 onChangeText={setWeight}
               />
             </View>
-            <TouchableOpacity
-              style={styles.calcActionBtn}
-              onPress={handleCalculateBMI}
-            >
+            <TouchableOpacity style={styles.calcActionBtn} onPress={handleCalculateBMI}>
               <Text style={styles.calcActionText}>계산</Text>
             </TouchableOpacity>
           </View>
@@ -233,7 +340,7 @@ export default function ProfileScreen() {
               keyboardType="numeric"
               value={bmiValue}
               onChangeText={setBmiValue}
-              placeholder="22.0"
+              placeholder="20.2"
             />
           </View>
         )}
@@ -245,41 +352,24 @@ export default function ProfileScreen() {
         </Text>
       </View>
 
-      {/* 섹션: 혈압 및 혈당 정보 - 아이콘 제거 */}
+      {/* 혈압 및 혈당 */}
       <View style={styles.sectionCard}>
         <Text style={styles.sectionTitle}>혈압 및 혈당 관리</Text>
-
         <Text style={styles.subLabel}>혈압 상태 분기</Text>
         <View style={[styles.rowContainer, { marginBottom: 12 }]}>
           <TouchableOpacity
-            style={[
-              styles.radioCell,
-              bloodPressureMode === "normal" && styles.radioCellActive,
-            ]}
+            style={[styles.radioCell, bloodPressureMode === "normal" && styles.radioCellActive]}
             onPress={() => setBpMode("normal")}
           >
-            <Text
-              style={[
-                styles.radioText,
-                bloodPressureMode === "normal" && styles.radioTextActive,
-              ]}
-            >
+            <Text style={[styles.radioText, bloodPressureMode === "normal" && styles.radioTextActive]}>
               정상
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[
-              styles.radioCell,
-              bloodPressureMode === "value" && styles.radioCellActive,
-            ]}
+            style={[styles.radioCell, bloodPressureMode === "value" && styles.radioCellActive]}
             onPress={() => setBpMode("value")}
           >
-            <Text
-              style={[
-                styles.radioText,
-                bloodPressureMode === "value" && styles.radioTextActive,
-              ]}
-            >
+            <Text style={[styles.radioText, bloodPressureMode === "value" && styles.radioTextActive]}>
               수치 직접 입력 / 고혈압
             </Text>
           </TouchableOpacity>
@@ -315,18 +405,10 @@ export default function ProfileScreen() {
               {["1기 고혈압", "2기 고혈압"].map((stage) => (
                 <TouchableOpacity
                   key={stage}
-                  style={[
-                    styles.radioCell,
-                    bpStage === stage && styles.radioCellActive,
-                  ]}
+                  style={[styles.radioCell, bpStage === stage && styles.radioCellActive]}
                   onPress={() => setBpStage(stage)}
                 >
-                  <Text
-                    style={[
-                      styles.radioText,
-                      bpStage === stage && styles.radioTextActive,
-                    ]}
-                  >
+                  <Text style={[styles.radioText, bpStage === stage && styles.radioTextActive]}>
                     {stage}
                   </Text>
                 </TouchableOpacity>
@@ -335,21 +417,19 @@ export default function ProfileScreen() {
           </View>
         )}
 
-        <Text style={[styles.subLabel, { marginTop: 12 }]}>
-          공복 혈당 수치 (mg/dL)
-        </Text>
+        <Text style={[styles.subLabel, { marginTop: 12 }]}>공복 혈당 수치 (mg/dL)</Text>
         <TextInput
           style={styles.input}
           keyboardType="numeric"
           value={bloodSugar}
           onChangeText={setBloodSugar}
-          placeholder="100"
+          placeholder="95"
         />
       </View>
 
-      {/* 섹션: 만성 질환 정보 정보 - 아이콘 제거 */}
+      {/* 만성 질환 정보 */}
       <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>보유 만성 질환 정보 (중복 선택)</Text>
+        <Text style={styles.sectionTitle}>보유 만성 질환 정보</Text>
         <View style={styles.checkboxGrid}>
           {["당뇨", "고혈압", "고지혈증"].map((item) => {
             const isChecked = diseases.includes(item);
@@ -369,34 +449,29 @@ export default function ProfileScreen() {
             );
           })}
         </View>
-        <Text style={[styles.subLabel, { marginTop: 10 }]}>
-          기타 질환 자유 입력
-        </Text>
+        <Text style={[styles.subLabel, { marginTop: 10 }]}>기타 질환 자유 입력</Text>
         <TextInput
           style={styles.input}
           value={customDisease}
           onChangeText={setCustomDisease}
-          placeholder="기타 건강 상태나 질환 명칭을 적어주세요."
+          placeholder="기타 질환 명칭 입력"
         />
       </View>
 
-      {/* 섹션: 알레르기 유발 항원 - 아이콘 제거 */}
+      {/* 알레르기 정보 */}
       <View style={styles.sectionCard}>
         <Text style={styles.sectionTitle}>알레르기 유발 항원 정보</Text>
-        <Text style={styles.subLabel}>제한해야 하는 알레르기 물질 입력</Text>
         <TextInput
           style={styles.input}
-          value={allergy}
-          onChangeText={setAllergy}
-          placeholder="예: 메밀, 땅콩, 복숭아 등 고유 명사 입력"
+          value={allergen}
+          onChangeText={setAllergen}
+          placeholder="예: 우유, 견과류, 갑각류 등 입력"
         />
       </View>
 
-      {/* 섹션: 입맛, 종교 및 제약 식단 - 아이콘 제거 */}
+      {/* 선호 취향 및 식단 제약 */}
       <View style={styles.sectionCard}>
-        <Text style={styles.sectionTitle}>
-          선호 입맛 취향 및 제약 식단 설정
-        </Text>
+        <Text style={styles.sectionTitle}>선호 취향 및 제약 식단 설정</Text>
         <View style={styles.chipGrid}>
           {[
             "한식",
@@ -415,9 +490,7 @@ export default function ProfileScreen() {
                 style={[styles.chip, isSelected && styles.chipActive]}
                 onPress={() => togglePreference(item)}
               >
-                <Text
-                  style={[styles.chipText, isSelected && styles.chipTextActive]}
-                >
+                <Text style={[styles.chipText, isSelected && styles.chipTextActive]}>
                   {item}
                 </Text>
               </TouchableOpacity>
@@ -427,10 +500,7 @@ export default function ProfileScreen() {
       </View>
 
       {/* 저장하기 버튼 */}
-      <TouchableOpacity
-        style={styles.saveMainButton}
-        onPress={handleSaveProfile}
-      >
+      <TouchableOpacity style={styles.saveMainButton} onPress={handleSaveProfile}>
         <Text style={styles.saveMainText}>맞춤형 설정 정보 저장하기</Text>
       </TouchableOpacity>
 

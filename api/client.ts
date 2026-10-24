@@ -3,7 +3,7 @@ import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
 // 🚨 주의: 반드시 방금 찾은 본인 PC의 IPv4 주소로 변경하세요! (포스트맨 주소인 127.0.0.1 금지)
-const API_BASE_URL = 'http://192.168.45.77:8000'; 
+const API_BASE_URL = 'http://192.168.45.14:8000';  
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
