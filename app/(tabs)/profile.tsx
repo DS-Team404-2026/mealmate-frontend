@@ -2,7 +2,6 @@ import { Colors } from "@/constants/theme";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState, useEffect } from "react";
 import {
-  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,8 +11,10 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { UserService } from "../../services/user.service";
+import { useAlert } from "../../components/CustomAlert";
 
 export default function ProfileScreen() {
+  const { showAlert } = useAlert();
   const [loading, setLoading] = useState(true);
 
   // 1. 마이페이지 상태
@@ -48,9 +49,9 @@ export default function ProfileScreen() {
     if (h > 0 && w > 0) {
       const calculated = (w / (h * h)).toFixed(1);
       setBmiValue(calculated);
-      Alert.alert("계산 완료", `측정된 BMI 지수는 ${calculated}입니다.`);
+      showAlert("계산 완료", `측정된 BMI 지수는 ${calculated}입니다.`, "success");
     } else {
-      Alert.alert("알림", "올바른 키와 몸무게를 입력해주세요.");
+      showAlert("알림", "올바른 키와 몸무게를 입력해주세요.", "warning");
     }
   };
 
@@ -82,7 +83,7 @@ export default function ProfileScreen() {
         UserService.getHealthProfile(),
       ]);
 
-      // 1. 프로필 정보 바인딩[cite: 4]
+      // 1. 프로필 정보 바인딩
       if (profileRes.data) {
         setNickname(profileRes.data.nickname || "");
         setHousing(profileRes.data.housing || "자취");
@@ -92,7 +93,7 @@ export default function ProfileScreen() {
         else if (profileRes.data.cooking_level === 3) setCookingLevel("숙련");
       }
 
-      // 2. 조리 환경 바인딩[cite: 6]
+      // 2. 조리 환경 바인딩
       if (envRes.data) {
         const activeAppliances = [];
         if (envRes.data.induction) activeAppliances.push("인덕션");
@@ -102,7 +103,7 @@ export default function ProfileScreen() {
         setAppliances(activeAppliances);
       }
 
-      // 3. 건강 정보 바인딩[cite: 8]
+      // 3. 건강 정보 바인딩
       if (healthRes.data) {
         setHeight(healthRes.data.height ? String(healthRes.data.height) : "");
         setWeight(healthRes.data.weight ? String(healthRes.data.weight) : "");
@@ -120,7 +121,7 @@ export default function ProfileScreen() {
       }
     } catch (error) {
       console.error("데이터 로딩 에러:", error);
-      Alert.alert("알림", "저장된 프로필 정보를 불러오지 못했습니다.");
+      showAlert("알림", "저장된 프로필 정보를 불러오지 못했습니다.", "warning");
     } finally {
       setLoading(false);
     }
@@ -139,7 +140,7 @@ export default function ProfileScreen() {
       if (cookingLevel === "초보") levelInt = 1;
       if (cookingLevel === "숙련") levelInt = 3;
 
-      // 1. 프로필 수정 페이로드[cite: 5]
+      // 1. 프로필 수정 페이로드
       const profileData = {
         nickname: nickname,
         cooking_level: levelInt,
@@ -147,7 +148,7 @@ export default function ProfileScreen() {
         preference: preferences,
       };
 
-      // 2. 환경 수정 페이로드[cite: 7]
+      // 2. 환경 수정 페이로드
       const envData = {
         induction: appliances.includes("인덕션"),
         microwave: appliances.includes("전자레인지"),
@@ -155,7 +156,7 @@ export default function ProfileScreen() {
         blender: appliances.includes("믹서기"),
       };
 
-      // 3. 건강 정보 수정 페이로드[cite: 9]
+      // 3. 건강 정보 수정 페이로드
       const parsedHeight = parseInt(height);
       const parsedWeight = parseInt(weight);
 
@@ -175,9 +176,10 @@ export default function ProfileScreen() {
         UserService.updateHealthProfile(healthData),
       ]);
 
-      Alert.alert(
+      showAlert(
         "저장 완료",
-        "레시피 추천을 위한 개인 맞춤 정보가 성공적으로 반영되었습니다."
+        "레시피 추천을 위한 개인 맞춤 정보가 성공적으로 반영되었습니다.",
+        "success"
       );
     } catch (error: any) {
       console.error("저장 실패 상세:", error);
@@ -185,7 +187,7 @@ export default function ProfileScreen() {
       if (error.response && error.response.data) {
         errorMessage = JSON.stringify(error.response.data, null, 2);
       }
-      Alert.alert("저장 실패 (서버 거부 사유)", errorMessage);
+      showAlert("저장 실패", errorMessage, "warning");
     }
   };
 
@@ -199,15 +201,8 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* 상단 프로필 헤더 */}
+      {/* 상단 프로필 헤더 (아이콘 제거 완료) */}
       <View style={styles.profileHeader}>
-        <View style={styles.avatarContainer}>
-          <Ionicons
-            name="person-circle-outline"
-            size={80}
-            color={Colors.light.primary}
-          />
-        </View>
         <Text style={styles.userName}>{nickname} 님</Text>
         <Text style={styles.userSub}>
           나에게 딱 맞는 스마트 레시피 분석 인프라
@@ -308,7 +303,7 @@ export default function ProfileScreen() {
 
         {bmiMode === "calc" ? (
           <View style={styles.inlineForm}>
-            <View style={{ flex: 1, marginRight: 10 }}>
+            <View style={{ flex: 1, marginRight: 8 }}>
               <Text style={styles.subLabel}>키 (cm)</Text>
               <TextInput
                 style={styles.input}
@@ -318,7 +313,7 @@ export default function ProfileScreen() {
                 onChangeText={setHeight}
               />
             </View>
-            <View style={{ flex: 1, marginRight: 10 }}>
+            <View style={{ flex: 1, marginRight: 8 }}>
               <Text style={styles.subLabel}>몸무게 (kg)</Text>
               <TextInput
                 style={styles.input}
@@ -513,14 +508,13 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#FFFFFF" },
   profileHeader: {
     alignItems: "center",
-    paddingVertical: 30,
+    paddingVertical: 25,
     backgroundColor: Colors.light.background,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
     marginBottom: 15,
   },
-  avatarContainer: { marginTop: 10 },
-  userName: { fontSize: 20, fontWeight: "800", color: "#222", marginTop: 5 },
+  userName: { fontSize: 20, fontWeight: "800", color: "#222" },
   userSub: { fontSize: 12, color: "#666", marginTop: 4 },
 
   sectionCard: {
@@ -557,6 +551,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#333",
     marginBottom: 10,
+    height: 45,
   },
 
   chipGrid: { flexDirection: "row", flexWrap: "wrap" },
@@ -606,14 +601,15 @@ const styles = StyleSheet.create({
   inlineForm: {
     flexDirection: "row",
     alignItems: "flex-end",
-    marginBottom: 10,
   },
   calcActionBtn: {
     backgroundColor: Colors.light.primary,
-    paddingVertical: 13,
+    height: 45,
+    marginBottom: 10,
     paddingHorizontal: 16,
     borderRadius: 10,
     justifyContent: "center",
+    alignItems: "center",
   },
   calcActionText: { color: "#fff", fontWeight: "700", fontSize: 14 },
   resultDisplayBlock: {

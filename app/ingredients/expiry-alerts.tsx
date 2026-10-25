@@ -3,12 +3,14 @@ import { View, Text, StyleSheet, TouchableOpacity, FlatList, ActivityIndicator }
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Notifications from 'expo-notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '@/constants/theme';
 import { InventoryService } from '../../services/inventory.service';
 import { RefrigeratorItem } from '../../types/inventory';
 import { useAlert } from '../../components/CustomAlert';
 
 const ALERT_OPTIONS = ['당일', '1일 전', '3일 전'];
+const STORAGE_KEY = '@expiry_alert_option';
 
 // 실시간 날짜 기준 D-Day 계산 함수
 const calculateDDay = (expiredAtStr: string): number => {
@@ -32,13 +34,19 @@ export default function ExpiryAlertsScreen() {
   const [loading, setLoading] = useState(true);
   const [alertDaysOption, setAlertDaysOption] = useState('3일 전');
 
-  // 1. 백엔드 냉장고 식재료 데이터 조회
-  const fetchIngredients = async () => {
+  // 1. 초기 데이터 및 저장된 알림 설정값 로드
+  const fetchInitialData = async () => {
     try {
       setLoading(true);
-      const res = await InventoryService.getRefrigerators();
 
-      // 소비기한(expired_at) 임박 순 오름차순 정렬
+      // 기기에 저장된 알림 옵션 불러오기
+      const savedOption = await AsyncStorage.getItem(STORAGE_KEY);
+      if (savedOption && ALERT_OPTIONS.includes(savedOption)) {
+        setAlertDaysOption(savedOption);
+      }
+
+      // 백엔드 냉장고 식재료 데이터 조회
+      const res = await InventoryService.getRefrigerators();
       const sorted = res.data.sort((a, b) => {
         const dateA = new Date(a.expired_at).getTime();
         const dateB = new Date(b.expired_at).getTime();
@@ -47,7 +55,7 @@ export default function ExpiryAlertsScreen() {
 
       setIngredients(sorted);
     } catch (error) {
-      console.error('소비기한 임박 목록 조회 실패:', error);
+      console.error('초기 데이터 로드 실패:', error);
       showAlert('오류', '데이터를 불러오지 못했습니다.', 'warning');
     } finally {
       setLoading(false);
@@ -55,16 +63,14 @@ export default function ExpiryAlertsScreen() {
   };
 
   useEffect(() => {
-    fetchIngredients();
+    fetchInitialData();
   }, []);
 
   // 2. 🔔 실제 소비기한 기준 스케줄 푸시 알림 등록 함수
   const updateRealPushNotifications = async (option: string, items: RefrigeratorItem[]) => {
     try {
-      // 기존 예약된 알림 전체 취소 (중복 발송 방지)
       await Notifications.cancelAllScheduledNotificationsAsync();
 
-      // 옵션별 빼야 하는 일수 계산 (당일: 0일, 1일 전: 1일, 3일 전: 3일)
       const offsetDays = option === '당일' ? 0 : option === '1일 전' ? 1 : 3;
       const now = new Date();
       let scheduledCount = 0;
@@ -73,13 +79,10 @@ export default function ExpiryAlertsScreen() {
         if (!item.expired_at) continue;
 
         const [year, month, day] = item.expired_at.split('-').map(Number);
-        
-        // 목표 알림 날짜 계산 (소비기한 - offsetDays)
         const triggerDate = new Date(year, month - 1, day);
         triggerDate.setDate(triggerDate.getDate() - offsetDays);
-        triggerDate.setHours(9, 0, 0, 0); // 매일 오전 9시에 푸시 알림 수신
+        triggerDate.setHours(9, 0, 0, 0);
 
-        // 알림 날짜가 현재 시점보다 미래인 경우에만 예약 등록
         if (triggerDate.getTime() > now.getTime()) {
           const itemName = item.ingredient_name || item.name || '식재료';
           const bodyText =
@@ -109,23 +112,30 @@ export default function ExpiryAlertsScreen() {
     }
   };
 
-  // 3. 알림 옵션 클릭 핸들러
+  // 3. 알림 옵션 선택 및 저장 핸들러
   const handleOptionSelect = async (option: string) => {
-    setAlertDaysOption(option);
-    const count = await updateRealPushNotifications(option, ingredients);
+    try {
+      setAlertDaysOption(option);
+      // 로컬 스토리지에 사용자 설정 저장
+      await AsyncStorage.setItem(STORAGE_KEY, option);
 
-    if (count > 0) {
-      showAlert(
-        '알림 설정 완료',
-        `[${option}] 기준으로 총 ${count}개 식재료의 소비기한 푸시 알림이 예약되었습니다.`,
-        'success'
-      );
-    } else {
-      showAlert(
-        '알림 설정 완료',
-        `[${option}] 기준 알림 설정이 완료되었습니다.\n(현재 예약 대상인 남은 식재료가 없습니다)`,
-        'info'
-      );
+      const count = await updateRealPushNotifications(option, ingredients);
+
+      if (count > 0) {
+        showAlert(
+          '알림 설정 완료',
+          `[${option}] 기준으로 총 ${count}개 식재료의 소비기한 푸시 알림이 예약되었습니다.`,
+          'success'
+        );
+      } else {
+        showAlert(
+          '알림 설정 완료',
+          `[${option}] 기준 알림 설정이 완료되었습니다.\n(현재 예약 대상인 남은 식재료가 없습니다)`,
+          'info'
+        );
+      }
+    } catch (error) {
+      console.error('알림 옵션 저장 에러:', error);
     }
   };
 
