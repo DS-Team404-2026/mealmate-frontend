@@ -3,13 +3,14 @@ import {
   DefaultTheme,
   ThemeProvider,
 } from "@react-navigation/native";
-import * as Notifications from "expo-notifications"; 
+import * as Notifications from "expo-notifications";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
 import React, { useEffect } from "react";
 import "react-native-reanimated";
 
 import { useColorScheme } from "@/hooks/use-color-scheme";
+import { CustomAlertProvider } from "@/components/CustomAlert"; // 👈 커스텀 Alert Provider 추가
 
 // 앱이 포어그라운드(켜져 있는 상태)일 때도 상단 푸시 알림(헤드업 알림)이 무조건 뜨도록 설정
 Notifications.setNotificationHandler({
@@ -54,17 +55,19 @@ export default function RootLayout() {
   }, []);
 
   return (
-    <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
-      <Stack screenOptions={{ headerShown: false }}>
-        {isLoggedIn ? (
-          // 로그인 되었을 때 보여줄 화면
-          <Stack.Screen name="(tabs)" />
-        ) : (
-          // 로그인 안 되었을 때 보여줄 화면
-          <Stack.Screen name="(auth)/login" />
-        )}
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <CustomAlertProvider>
+      <ThemeProvider value={colorScheme === "dark" ? DarkTheme : DefaultTheme}>
+        <Stack screenOptions={{ headerShown: false }}>
+          {isLoggedIn ? (
+            // 로그인 되었을 때 보여줄 화면
+            <Stack.Screen name="(tabs)" />
+          ) : (
+            // 로그인 안 되었을 때 보여줄 화면
+            <Stack.Screen name="(auth)/login" />
+          )}
+        </Stack>
+        <StatusBar style="auto" />
+      </ThemeProvider>
+    </CustomAlertProvider>
   );
 }

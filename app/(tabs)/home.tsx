@@ -1,9 +1,9 @@
 import { Colors } from "@/constants/theme";
-import { useIngredientStore } from "@/store/ingredient.store";
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useRouter, useFocusEffect } from "expo-router";
+import React, { useState, useCallback } from "react";
 import {
+  ActivityIndicator,
   Dimensions,
   FlatList,
   Image,
@@ -16,12 +16,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { InventoryService } from "../../services/inventory.service";
+import { RefrigeratorItem } from "../../types/inventory";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const CARD_WIDTH = SCREEN_WIDTH - 40;
 
-
-// mock 데이터 
+// 추천 메뉴 MOCK 데이터
 const TODAY_RECOMMENDATIONS = [
   {
     id: "rec-1",
@@ -46,12 +47,53 @@ const TODAY_RECOMMENDATIONS = [
   },
 ];
 
+// 실시간 D-Day 계산 함수
+const calculateDDay = (expiredAtStr: string): number => {
+  if (!expiredAtStr) return 0;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const [year, month, day] = expiredAtStr.split("-").map(Number);
+  const targetDate = new Date(year, month - 1, day);
+  targetDate.setHours(0, 0, 0, 0);
+
+  const diffTime = targetDate.getTime() - today.getTime();
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+};
+
 export default function HomeScreen() {
   const router = useRouter();
-  const { ingredients } = useIngredientStore();
   const [activeMenuIndex, setActiveMenuIndex] = useState(0);
 
-  const displayIngredients = [...ingredients];
+  // 실데이터 및 로딩 상태 관리
+  const [ingredients, setIngredients] = useState<RefrigeratorItem[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // 백엔드 실데이터 조회 및 소비기한(유통기한) 오름차순 정렬
+  const fetchMyIngredients = async () => {
+    try {
+      setLoading(true);
+      const res = await InventoryService.getRefrigerators();
+      
+      const sorted = res.data.sort((a, b) => {
+        const dateA = new Date(a.expired_at).getTime();
+        const dateB = new Date(b.expired_at).getTime();
+        return dateA - dateB;
+      });
+
+      setIngredients(sorted);
+    } catch (err) {
+      console.error("홈 화면 식재료 조회 실패:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchMyIngredients();
+    }, [])
+  );
 
   const handleMenuScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
     const scrollOffset = event.nativeEvent.contentOffset.x;
@@ -59,8 +101,12 @@ export default function HomeScreen() {
     setActiveMenuIndex(currentIndex);
   };
 
+  const mostUrgentItem = ingredients.length > 0 ? ingredients[0] : null;
+  const urgentDDay = mostUrgentItem ? calculateDDay(mostUrgentItem.expired_at) : null;
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Header */}
       <View style={styles.header}>
         <Ionicons name="menu-outline" size={28} color="#000" />
         <Image
@@ -87,14 +133,22 @@ export default function HomeScreen() {
         <Ionicons name="mic-outline" size={20} color="#999" />
       </View>
 
-      {/* 소비기한 배너 */}
+      {/* 소비기한 임박 배너 */}
       <View style={styles.banner}>
         <View style={styles.bannerTextContainer}>
           <MaterialCommunityIcons name="clock-outline" size={20} color="#fff" />
           <Text style={styles.bannerText}>소비기한 임박 재료</Text>
         </View>
         <Text style={styles.bannerSubText}>
-          식재료를 사용할 수 있는 시간이 23시간 남았습니다!
+          {mostUrgentItem
+            ? `'${mostUrgentItem.ingredient_name || mostUrgentItem.name}'의 소비기한이 ${
+                urgentDDay! < 0
+                  ? `지났습니다 (D+${Math.abs(urgentDDay!)})`
+                  : urgentDDay === 0
+                  ? "오늘까지입니다!"
+                  : `${urgentDDay}일 남았습니다!`
+              }`
+            : "냉장고에 등록된 식재료가 없습니다."}
         </Text>
 
         <TouchableOpacity
@@ -164,10 +218,11 @@ export default function HomeScreen() {
 
       {/* My Ingredients Section */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>나의 식재료</Text>
-        <TouchableOpacity
-          onPress={() => router.push("/ingredients/categories")}
-        >
+        <TouchableOpacity onPress={() => router.push("/(tabs)/cart")}>
+          <Text style={styles.sectionTitle}>나의 식재료</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity onPress={() => router.push("/(tabs)/cart")}>
           <View style={styles.seeAllButtonContainer}>
             <Text style={styles.seeAllText}>전체 보기</Text>
             <Ionicons
@@ -180,51 +235,88 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* 재료 리스트 */}
-      <FlatList
-        data={displayIngredients}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        snapToInterval={(SCREEN_WIDTH - 52) / 2 + 12}
-        decelerationRate="fast"
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.ingredientListContent}
-        renderItem={({ item }) => (
-          <View style={styles.ingredientCard}>
-            <View style={styles.ingredientImagePlaceholder}>
-              <Ionicons
-                name={
-                  item.name.includes("메밀") ||
-                  item.name.toLowerCase().includes("soba")
-                    ? "fast-food"
-                    : item.name.includes("소고기") ||
-                        item.name.toLowerCase().includes("beef")
-                      ? "nutrition"
-                      : "leaf"
-                }
-                size={36}
-                color={Colors.light.primary}
-              />
+      {/* 식재료 리스트 */}
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="small" color={Colors.light.primary} />
+        </View>
+      ) : (
+        <FlatList
+          data={ingredients}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          snapToInterval={(SCREEN_WIDTH - 52) / 2 + 12}
+          decelerationRate="fast"
+          keyExtractor={(item) => item.id.toString()}
+          contentContainerStyle={styles.ingredientListContent}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyText}>냉장고가 비어있습니다.</Text>
             </View>
-            <Text style={styles.ingredientName} numberOfLines={1}>
-              {item.name}
-            </Text>
-            <Text style={styles.ingredientInfo}>1인분 기준 | 25 kcal</Text>
-            <Text style={styles.ingredientStock}>
-              {item.quantity} {item.unit}
-            </Text>
-            <Text style={styles.ingredientLocation}>{item.storage} 보관</Text>
+          }
+          renderItem={({ item }) => {
+            const dday = calculateDDay(item.expired_at);
+            const itemName = item.ingredient_name || item.name || "식재료";
+            const category = item.ingredient_category || item.category || "기타";
+            const qtyDisplay = item.quantity_display || `${item.quantity ?? 1}${item.ingredient_unit || item.unit || "개"}`;
 
-            {/* 날짜 가이드 라인 */}
-            <View style={styles.dateContainer}>
-              <View style={styles.grayDot} />
-              <Text style={styles.ingredientDate}>
-                소비기한 {item.expiryDate}
-              </Text>
-            </View>
-          </View>
-        )}
-      />
+            return (
+              <TouchableOpacity
+                style={styles.ingredientCard}
+                onPress={() => router.push("/(tabs)/cart")}
+                activeOpacity={0.7}
+              >
+                <View style={styles.ingredientImagePlaceholder}>
+                  <Ionicons
+                    name={
+                      category === "채소"
+                        ? "leaf-outline"
+                        : category === "과일"
+                        ? "nutrition-outline"
+                        : category === "육류"
+                        ? "restaurant-outline"
+                        : category === "어류"
+                        ? "fish-outline"
+                        : category === "유제품"
+                        ? "ice-cream-outline"
+                        : "cube-outline"
+                    }
+                    size={36}
+                    color={Colors.light.primary}
+                  />
+                </View>
+                <Text style={styles.ingredientName} numberOfLines={1}>
+                  {itemName}
+                </Text>
+                <Text style={styles.ingredientInfo}>{category}</Text>
+                <Text style={styles.ingredientStock}>{qtyDisplay}</Text>
+                <Text style={styles.ingredientLocation}>{item.storage_type} 보관</Text>
+
+                <View style={styles.dateContainer}>
+                  <View
+                    style={[
+                      styles.grayDot,
+                      dday <= 3 && { backgroundColor: "#FF3B30" },
+                    ]}
+                  />
+                  <Text
+                    style={[
+                      styles.ingredientDate,
+                      dday <= 3 && { color: "#FF3B30", fontWeight: "700" },
+                    ]}
+                  >
+                    {dday < 0
+                      ? `만료 (D+${Math.abs(dday)})`
+                      : dday === 0
+                      ? "D-Day (오늘)"
+                      : `D-${dday}`}
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          }}
+        />
+      )}
 
       <View style={{ height: 140 }} />
     </ScrollView>
@@ -299,7 +391,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.2)",
     padding: 20,
-    justifyContent: "center",
+    justifyContent: "center", // 👈 수정 완료 (justify -> justifyContent)
   },
   heroTitle: { color: "#fff", fontSize: 24, fontWeight: "900" },
   heroSubTitle: { color: "#ddd", fontSize: 13, marginTop: 5, marginBottom: 15 },
@@ -329,6 +421,10 @@ const styles = StyleSheet.create({
   },
   indicatorDotActive: { backgroundColor: "#417D7A", width: 14 },
 
+  loadingContainer: { paddingVertical: 30, alignItems: "center" },
+  emptyContainer: { paddingHorizontal: 20, paddingVertical: 20 },
+  emptyText: { color: "#999", fontSize: 13 },
+
   ingredientListContent: { paddingHorizontal: 20, paddingBottom: 20 },
   ingredientCard: {
     width: (SCREEN_WIDTH - 52) / 2,
@@ -349,7 +445,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   ingredientName: { fontSize: 14, fontWeight: "700" },
-  ingredientInfo: { fontSize: 10, color: "#999", marginVertical: 3 },
+  ingredientInfo: { fontSize: 11, color: "#999", marginVertical: 3 },
   ingredientStock: { fontSize: 12, fontWeight: "700", color: "#333" },
   ingredientLocation: { fontSize: 11, color: "#666" },
 
@@ -361,5 +457,5 @@ const styles = StyleSheet.create({
     backgroundColor: "#A0A0A0",
     marginRight: 5,
   },
-  ingredientDate: { fontSize: 10, color: "#888", fontWeight: "500" },
+  ingredientDate: { fontSize: 11, color: "#888", fontWeight: "500" },
 });
