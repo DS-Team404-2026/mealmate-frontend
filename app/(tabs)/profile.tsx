@@ -25,7 +25,7 @@ export default function ProfileScreen() {
 
   const togglePreference = (item: string) => {
     setPreferences((prev) =>
-      prev.includes(item) ? prev.filter((p) => p !== item) : [...prev, item],
+      prev.includes(item) ? prev.filter((p) => p !== item) : [...prev, item]
     );
   };
 
@@ -33,7 +33,7 @@ export default function ProfileScreen() {
   const [appliances, setAppliances] = useState<string[]>([]);
   const toggleAppliance = (item: string) => {
     setAppliances((prev) =>
-      prev.includes(item) ? prev.filter((a) => a !== item) : [...prev, item],
+      prev.includes(item) ? prev.filter((a) => a !== item) : [...prev, item]
     );
   };
 
@@ -52,7 +52,7 @@ export default function ProfileScreen() {
       showAlert(
         "계산 완료",
         `측정된 BMI 지수는 ${calculated}입니다.`,
-        "success",
+        "success"
       );
     } else {
       showAlert("알림", "올바른 키와 몸무게를 입력해주세요.", "warning");
@@ -65,15 +65,39 @@ export default function ProfileScreen() {
   const [bpStage, setBpStage] = useState("정상");
   const [bloodSugar, setBloodSugar] = useState("");
 
+  // 기본 만성 질환 (체크박스)
   const [diseases, setDiseases] = useState<string[]>([]);
-  const [customDisease, setCustomDisease] = useState("");
   const toggleDisease = (item: string) => {
     setDiseases((prev) =>
-      prev.includes(item) ? prev.filter((d) => d !== item) : [...prev, item],
+      prev.includes(item) ? prev.filter((d) => d !== item) : [...prev, item]
     );
   };
 
-  // 4. 알레르기 유발 항원 정보 (배열 형태 처리)
+  // 기타 질환 자유 입력 (태그 형태 처리)
+  const [diseaseTags, setDiseaseTags] = useState<string[]>([]);
+  const [diseaseInput, setDiseaseInput] = useState("");
+
+  const handleAddDiseaseTag = (text: string) => {
+    const trimmed = text.trim().replace(/,/g, "");
+    if (trimmed && !diseaseTags.includes(trimmed)) {
+      setDiseaseTags((prev) => [...prev, trimmed]);
+    }
+    setDiseaseInput("");
+  };
+
+  const handleRemoveDiseaseTag = (tagToRemove: string) => {
+    setDiseaseTags((prev) => prev.filter((tag) => tag !== tagToRemove));
+  };
+
+  const handleDiseaseTextChange = (text: string) => {
+    if (text.endsWith(" ") || text.endsWith(",")) {
+      handleAddDiseaseTag(text);
+    } else {
+      setDiseaseInput(text);
+    }
+  };
+
+  // 4. 알레르기 유발 항원 정보 (태그 형태 처리)
   const [allergenTags, setAllergenTags] = useState<string[]>([]);
   const [allergenInput, setAllergenInput] = useState("");
 
@@ -100,84 +124,88 @@ export default function ProfileScreen() {
   // ==============================
   // 데이터 불러오기 (GET)
   // ==============================
-  const fetchAllData = async () => {
-    try {
-      setLoading(true);
-      const [profileRes, envRes, healthRes] = await Promise.all([
-        UserService.getProfile(),
-        UserService.getEnvironment(),
-        UserService.getHealthProfile(),
-      ]);
-
-      // 1. 프로필 정보 바인딩
-      if (profileRes.data) {
-        const pData = profileRes.data as any;
-        setNickname(pData.nickname || "");
-        setHousing(pData.housing || "자취");
-        setPreferences(pData.preference || []);
-        if (pData.cooking_level === 1) setCookingLevel("초보");
-        else if (pData.cooking_level === 2) setCookingLevel("보통");
-        else if (pData.cooking_level === 3) setCookingLevel("숙련");
-      }
-
-      // 2. 조리 환경 바인딩 (백엔드 4가지 필드 매핑)
-      if (envRes.data) {
-        const eData = envRes.data as any;
-        const activeAppliances: string[] = [];
-        if (eData.induction) activeAppliances.push("인덕션");
-        if (eData.microwave) activeAppliances.push("전자레인지");
-        if (eData.airfryer) activeAppliances.push("에어프라이어");
-        if (eData.blender) activeAppliances.push("블렌더");
-        setAppliances(activeAppliances);
-      }
-
-      // 3. 건강 정보 바인딩
-      if (healthRes.data) {
-        const hData = healthRes.data as any;
-        setHeight(hData.height ? String(hData.height) : "");
-        setWeight(hData.weight ? String(hData.weight) : "");
-        setBmiValue(hData.bmi ? String(hData.bmi) : "");
-        setBpStage(hData.blood_pressure || "정상");
-
-        if (hData.allergies) {
-          if (Array.isArray(hData.allergies)) {
-            setAllergenTags(hData.allergies);
-          } else if (typeof hData.allergies === "string") {
-            setAllergenTags(
-              hData.allergies.split(",").map((item: string) => item.trim()).filter(Boolean)
-            );
-          }
-        } else if (hData.allergen) {
-          setAllergenTags(
-            hData.allergen.split(",").map((item: string) => item.trim()).filter(Boolean)
-          );
-        } else {
-          setAllergenTags([]);
-        }
-
-        if (hData.diseases) {
-          if (Array.isArray(hData.diseases)) {
-            setDiseases(hData.diseases);
-          } else if (typeof hData.diseases === "string") {
-            setDiseases(
-              (hData.diseases as string)
-                .split(",")
-                .map((d: string) => d.trim()),
-            );
-          }
-        }
-      }
-    } catch (error) {
-      console.error("데이터 로딩 에러:", error);
-      showAlert("알림", "저장된 프로필 정보를 불러오지 못했습니다.", "warning");
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
+    const fetchAllData = async () => {
+      try {
+        setLoading(true);
+        const [profileRes, envRes, healthRes] = await Promise.all([
+          UserService.getProfile(),
+          UserService.getEnvironment(),
+          UserService.getHealthProfile(),
+        ]);
+
+        // 1. 프로필 정보 바인딩
+        if (profileRes.data) {
+          const pData = profileRes.data as any;
+          setNickname(pData.nickname || "");
+          setHousing(pData.housing || "자취");
+          setPreferences(pData.preference || []);
+          if (pData.cooking_level === 1) setCookingLevel("초보");
+          else if (pData.cooking_level === 2) setCookingLevel("보통");
+          else if (pData.cooking_level === 3) setCookingLevel("숙련");
+        }
+
+        // 2. 조리 환경 바인딩
+        if (envRes.data) {
+          const eData = envRes.data as any;
+          const activeAppliances: string[] = [];
+          if (eData.induction) activeAppliances.push("인덕션");
+          if (eData.microwave) activeAppliances.push("전자레인지");
+          if (eData.airfryer) activeAppliances.push("에어프라이어");
+          if (eData.blender) activeAppliances.push("블렌더");
+          setAppliances(activeAppliances);
+        }
+
+        // 3. 건강 정보 바인딩
+        if (healthRes.data) {
+          const hData = healthRes.data as any;
+          setHeight(hData.height ? String(hData.height) : "");
+          setWeight(hData.weight ? String(hData.weight) : "");
+          setBmiValue(hData.bmi ? String(hData.bmi) : "");
+          setBpStage(hData.blood_pressure || "정상");
+
+          if (hData.allergies) {
+            if (Array.isArray(hData.allergies)) {
+              setAllergenTags(hData.allergies);
+            } else if (typeof hData.allergies === "string") {
+              setAllergenTags(
+                hData.allergies.split(",").map((item: string) => item.trim()).filter(Boolean)
+              );
+            }
+          } else if (hData.allergen) {
+            setAllergenTags(
+              hData.allergen.split(",").map((item: string) => item.trim()).filter(Boolean)
+            );
+          } else {
+            setAllergenTags([]);
+          }
+
+          if (hData.diseases) {
+            let loadedDiseases: string[] = [];
+            if (Array.isArray(hData.diseases)) {
+              loadedDiseases = hData.diseases;
+            } else if (typeof hData.diseases === "string") {
+              loadedDiseases = hData.diseases.split(",").map((d: string) => d.trim()).filter(Boolean);
+            }
+
+            const defaultOptions = ["당뇨", "고혈압", "고지혈증"];
+            const checked = loadedDiseases.filter((d) => defaultOptions.includes(d));
+            const custom = loadedDiseases.filter((d) => !defaultOptions.includes(d));
+
+            setDiseases(checked);
+            setDiseaseTags(custom);
+          }
+        }
+      } catch (error) {
+        console.error("데이터 로딩 에러:", error);
+        showAlert("알림", "저장된 프로필 정보를 불러오지 못했습니다.", "warning");
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchAllData();
-  }, []);
+  }, [showAlert]);
 
   // ==============================
   // 데이터 저장하기 (PATCH)
@@ -188,6 +216,7 @@ export default function ProfileScreen() {
       if (cookingLevel === "초보") levelInt = 1;
       if (cookingLevel === "숙련") levelInt = 3;
 
+      // 미처 엔터를 치지 않고 저장 버튼을 누른 알레르기 태그 처리
       let finalAllergenTags = [...allergenTags];
       if (allergenInput.trim()) {
         const trimmed = allergenInput.trim().replace(/,/g, "");
@@ -198,6 +227,17 @@ export default function ProfileScreen() {
         }
       }
 
+      // 미처 엔터를 치지 않고 저장 버튼을 누른 기타 질환 태그 처리
+      let finalDiseaseCustomTags = [...diseaseTags];
+      if (diseaseInput.trim()) {
+        const trimmed = diseaseInput.trim().replace(/,/g, "");
+        if (trimmed && !finalDiseaseCustomTags.includes(trimmed)) {
+          finalDiseaseCustomTags.push(trimmed);
+          setDiseaseTags(finalDiseaseCustomTags);
+          setDiseaseInput("");
+        }
+      }
+
       const profileData = {
         nickname: nickname,
         cooking_level: levelInt,
@@ -205,7 +245,6 @@ export default function ProfileScreen() {
         preference: preferences,
       };
 
-      // 💡 백엔드 명세에 정확히 맞춘 조리 환경 페이로드 (4가지 boolean 필드)
       const envData = {
         induction: appliances.includes("인덕션"),
         microwave: appliances.includes("전자레인지"),
@@ -218,10 +257,10 @@ export default function ProfileScreen() {
 
       const healthData: any = {
         blood_pressure: bloodPressureMode === "normal" ? "정상" : bpStage,
-        diseases: [...diseases, customDisease].filter(Boolean),
+        diseases: Array.from(new Set([...diseases, ...finalDiseaseCustomTags])).filter(Boolean),
         allergies: finalAllergenTags,
         diets: preferences.filter((p) =>
-          ["저염", "저당", "채식", "저탄수", "고단백", "저염식"].includes(p),
+          ["저염", "저당", "채식", "저탄수", "고단백", "저염식"].includes(p)
         ),
       };
 
@@ -237,7 +276,7 @@ export default function ProfileScreen() {
       showAlert(
         "저장 완료",
         "레시피 추천을 위한 개인 맞춤 정보가 성공적으로 반영되었습니다.",
-        "success",
+        "success"
       );
     } catch (error: any) {
       console.error("저장 실패 상세:", error);
@@ -296,7 +335,6 @@ export default function ProfileScreen() {
         </View>
       </View>
 
-      {/* 💡 백엔드 명세에 맞춘 4가지 조리기구 환경 선택 */}
       <View style={styles.sectionCard}>
         <Text style={styles.sectionTitle}>보유 조리기구 환경</Text>
         <View style={styles.chipGrid}>
@@ -554,12 +592,35 @@ export default function ProfileScreen() {
         <Text style={[styles.subLabel, { marginTop: 10 }]}>
           기타 질환 자유 입력
         </Text>
-        <TextInput
-          style={styles.input}
-          value={customDisease}
-          onChangeText={setCustomDisease}
-          placeholder="기타 질환 명칭 입력"
-        />
+        {/* 지메일 스타일 기타 질환 태그 입력창 */}
+        <View style={styles.tagInputContainer}>
+          {diseaseTags.map((tag) => (
+            <View key={tag} style={styles.tagChip}>
+              <Text style={styles.tagChipText}>{tag}</Text>
+              <TouchableOpacity
+                onPress={() => handleRemoveDiseaseTag(tag)}
+                hitSlop={{ top: 5, bottom: 5, left: 5, right: 5 }}
+                style={styles.tagRemoveBtn}
+              >
+                <Ionicons name="close" size={14} color="#666" />
+              </TouchableOpacity>
+            </View>
+          ))}
+          <TextInput
+            style={styles.tagTextInput}
+            value={diseaseInput}
+            onChangeText={handleDiseaseTextChange}
+            onSubmitEditing={() => handleAddDiseaseTag(diseaseInput)}
+            placeholder={
+              diseaseTags.length === 0
+                ? "예: 궤양, 통풍 (스페이스바 또는 엔터)"
+                : ""
+            }
+            placeholderTextColor="#999"
+            blurOnSubmit={false}
+            returnKeyType="done"
+          />
+        </View>
       </View>
 
       {/* 알레르기 유발 항원 정보 (지메일 스타일 태그 입력창) */}

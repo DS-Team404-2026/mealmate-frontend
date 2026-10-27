@@ -1,5 +1,5 @@
 // 📁 app/(tabs)/cart.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
   ScrollView,
   TextInput,
 } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '@/constants/theme';
 import { InventoryService, IngredientMaster } from '../../services/inventory.service';
@@ -92,9 +93,12 @@ export default function CartScreen() {
     }
   };
 
-  useEffect(() => {
-    fetchInventory();
-  }, []);
+  // 💡 탭 이동 후 Cart 화면 진입(포커스)할 때마다 자동 새로고침 수행
+  useFocusEffect(
+    useCallback(() => {
+      fetchInventory();
+    }, [])
+  );
 
   const categoryCounts = React.useMemo(() => {
     const counts: { [key: string]: number } = { 전체: items.length };
@@ -130,16 +134,19 @@ export default function CartScreen() {
   const handleSearchIngredient = async (text: string) => {
     setSearchQuery(text);
     setSelectedIngredient(null);
+
     if (!text.trim()) {
       setSearchResults([]);
       return;
     }
+
     try {
       setIsSearching(true);
-      const res = await InventoryService.searchIngredients(text);
-      setSearchResults(res.data);
+      const res = await InventoryService.searchIngredients(text.trim());
+      setSearchResults(Array.isArray(res.data) ? res.data : []);
     } catch (err) {
       console.error('재료 검색 실패:', err);
+      setSearchResults([]);
     } finally {
       setIsSearching(false);
     }
@@ -180,7 +187,6 @@ export default function CartScreen() {
     setModalVisible(true);
   };
 
-  // 💡 마스터 식재료 확인 및 자동 생성 후 냉장고 등록 로직 반영
   const handleSaveItem = async () => {
     const ingredientName = searchQuery.trim();
     if (!ingredientName) {
@@ -210,7 +216,6 @@ export default function CartScreen() {
       } else {
         let targetIngredientId = selectedIngredient?.id;
 
-        // 1. 만약 검색을 통해 선택된 마스터 ID가 없다면, POST /api/v1/ingredients/ 로 신규 마스터 생성[cite: 11]
         if (!targetIngredientId) {
           const newMasterRes = await InventoryService.createIngredient({
             name: ingredientName,
@@ -221,7 +226,6 @@ export default function CartScreen() {
           targetIngredientId = newMasterRes.data.id;
         }
 
-        // 2. 획득한 마스터 ID를 바탕으로 POST /api/v1/user-refrigerators/ 요청[cite: 12]
         const payload: any = {
           ingredient: targetIngredientId,
           quantity: numQuantity,
@@ -302,7 +306,6 @@ export default function CartScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>나의 냉장고 관리</Text>
         <TouchableOpacity style={styles.addBtn} onPress={openAddModal}>
@@ -310,7 +313,6 @@ export default function CartScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* 카테고리 그리드 선택 메뉴 */}
       <View style={styles.categoryMenuContainer}>
         <Text style={styles.categoryMenuHeader}>카테고리 선택</Text>
         <View style={styles.categoryGrid}>
@@ -344,7 +346,6 @@ export default function CartScreen() {
         </View>
       </View>
 
-      {/* 목록 */}
       <SectionList
         sections={groupedSections}
         keyExtractor={(item) => item.id.toString()}
@@ -398,7 +399,6 @@ export default function CartScreen() {
         }}
       />
 
-      {/* 등록/수정 모달 */}
       <Modal visible={modalVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -417,7 +417,7 @@ export default function CartScreen() {
                     <Ionicons name="create-outline" size={18} color="#888" style={{ marginRight: 8 }} />
                     <TextInput
                       style={styles.searchInput}
-                      placeholder="예: 양파, 대파, 마늘 등 입력"
+                      placeholder="예: 후추, 소금, 양파 등 입력"
                       value={searchQuery}
                       onChangeText={handleSearchIngredient}
                     />
@@ -534,7 +534,6 @@ export default function CartScreen() {
         </View>
       </Modal>
 
-      {/* 유통기한 날짜 선택 전용 모달 */}
       <Modal visible={datePickerVisible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={[styles.modalContent, { height: 'auto', paddingBottom: 25 }]}>
