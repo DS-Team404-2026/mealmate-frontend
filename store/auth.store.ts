@@ -25,7 +25,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   login: async (email, password) => {
     try {
       set({ isLoading: true });
-      // API 명세서대로 /api/v1/users/login/ 에 POST 요청
+      
+      // API 명세서에 따른 로그인 요청[cite: 12]
       const response = await apiClient.post('/api/v1/users/login/', {
         email,
         password,
@@ -34,7 +35,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       if (response.status === 200) {
         const { access_token, refresh_token, user } = response.data;
         
-        // 토큰을 스마트폰의 안전한 저장소에 보관
+        // 토큰 안전한 저장소에 보관
         await SecureStore.setItemAsync('access_token', access_token);
         await SecureStore.setItemAsync('refresh_token', refresh_token);
         
@@ -44,11 +45,24 @@ export const useAuthStore = create<AuthState>((set) => ({
       return false;
     } catch (error: any) {
       set({ isLoading: false });
+      
+      // 💡 에러 원인 분석을 위한 콘솔 로깅
+      console.log('===== 로그인 에러 디버깅 =====');
+      console.log('에러 메시지:', error.message);
+      console.log('서버 응답 데이터:', error.response?.data);
+      console.log('상태 코드:', error.response?.status);
+      console.log('==============================');
+
       const status = error.response?.status;
       
-      if (status === 400) Alert.alert('로그인 실패', '입력값을 확인해주세요.');
-      else if (status === 401) Alert.alert('로그인 실패', '이메일 또는 비밀번호가 일치하지 않습니다.');
-      else Alert.alert('오류', '서버와 연결할 수 없습니다.');
+      if (status === 400) {
+        Alert.alert('로그인 실패', '입력값을 확인해주세요.');
+      } else if (status === 401) {
+        Alert.alert('로그인 실패', '이메일 또는 비밀번호가 일치하지 않습니다.');
+      } else {
+        // 네트워크 연결 에러 또는 기타 서버 에러일 경우 메시지 세분화
+        Alert.alert('오류', `서버 연결 실패: ${error.message || '네트워크 상태를 확인해주세요.'}`);
+      }
       return false;
     }
   },
@@ -57,7 +71,6 @@ export const useAuthStore = create<AuthState>((set) => ({
   signup: async (payload) => {
     try {
       set({ isLoading: true });
-      // API 명세서대로 /api/v1/users/signup/ 에 POST 요청
       const response = await apiClient.post('/api/v1/users/signup/', payload);
 
       if (response.status === 201) {
@@ -68,11 +81,21 @@ export const useAuthStore = create<AuthState>((set) => ({
       return false;
     } catch (error: any) {
       set({ isLoading: false });
+      
+      console.log('===== 회원가입 에러 디버깅 =====');
+      console.log('에러 메시지:', error.message);
+      console.log('서버 응답 데이터:', error.response?.data);
+      console.log('==============================');
+
       const status = error.response?.status;
 
-      if (status === 400) Alert.alert('가입 실패', '입력값 오류 또는 비밀번호가 일치하지 않습니다.');
-      else if (status === 409) Alert.alert('가입 실패', '이미 가입된 이메일입니다.');
-      else Alert.alert('오류', '서버와 연결할 수 없습니다.');
+      if (status === 400) {
+        Alert.alert('가입 실패', '입력값 오류 또는 비밀번호가 일치하지 않습니다.');
+      } else if (status === 409) {
+        Alert.alert('가입 실패', '이미 가입된 이메일입니다.');
+      } else {
+        Alert.alert('오류', `서버 연결 실패: ${error.message || '네트워크 상태를 확인해주세요.'}`);
+      }
       return false;
     }
   },

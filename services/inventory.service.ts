@@ -1,6 +1,7 @@
 // 담당: 보유 식재료 관리
 // 내용: 식재료 추가/조회/수정/삭제, 유통기한 기준 정렬, 보관 위치별 필터링
 
+// 📁 services/inventory.service.ts
 import { apiClient } from '../api/client';
 import { RefrigeratorItem, StorageType, UnitType } from '../types/inventory';
 
@@ -10,6 +11,13 @@ export interface IngredientMaster {
   category: string;
   unit: UnitType;
   amount: number;
+}
+
+export interface AddIngredientMasterRequest {
+  name: string;
+  category: string;
+  unit: UnitType;
+  amount?: number;
 }
 
 export interface AddRefrigeratorRequest {
@@ -31,14 +39,19 @@ export interface UpdateRefrigeratorRequest {
 }
 
 export const InventoryService = {
-  // 1. 식재료 사전 검색 API (keyword 쿼리 파라미터 사용)
+  // 1. 식재료 사전 검색 API
   searchIngredients: (keyword: string) => {
     return apiClient.get<IngredientMaster[]>('/api/v1/ingredients/', {
       params: { keyword },
     });
   },
 
-  // 2. 냉장고 목록 조회 (필터링 파라미터 지원)
+  // 💡 1-1. 마스터 식재료 새로 생성 API (POST /api/v1/ingredients/)
+  createIngredient: (data: AddIngredientMasterRequest) => {
+    return apiClient.post<IngredientMaster>('/api/v1/ingredients/', data);
+  },
+
+  // 2. 냉장고 목록 조회
   getRefrigerators: (params?: { category?: string; storage_type?: string; expiry_status?: string }) => {
     return apiClient.get<RefrigeratorItem[]>('/api/v1/user-refrigerators/', {
       params,

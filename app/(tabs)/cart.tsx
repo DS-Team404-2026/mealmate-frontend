@@ -1,3 +1,4 @@
+// 📁 app/(tabs)/cart.tsx
 import React, { useEffect, useState } from 'react';
 import {
   View,
@@ -19,7 +20,6 @@ import { useAlert } from '../../components/CustomAlert';
 const STORAGE_OPTIONS: StorageType[] = ['냉장', '냉동', '상온'];
 const UNIT_OPTIONS: UnitType[] = ['g', 'kg', 'ml', 'L', '개', '팩'];
 
-// 백엔드 마스터 데이터 기반 카테고리 목록 및 매핑 아이콘
 const CATEGORY_LIST = [
   { name: '전체', icon: 'grid-outline' },
   { name: '채소', icon: 'leaf-outline' },
@@ -36,7 +36,6 @@ const CATEGORY_LIST = [
 const YEARS = [2026, 2027, 2028];
 const MONTHS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, '0'));
 
-// 실시간 D-Day 계산 함수
 const calculateDDay = (expiredAtStr: string): number => {
   if (!expiredAtStr) return 0;
   const today = new Date();
@@ -56,27 +55,21 @@ export default function CartScreen() {
   const [items, setItems] = useState<RefrigeratorItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 카테고리 필터링 선택 상태 (기본값: '전체')
   const [selectedFilterCategory, setSelectedFilterCategory] = useState<string>('전체');
 
-  // 등록 및 수정 모달 상태
   const [modalVisible, setModalVisible] = useState(false);
   const [editItem, setEditItem] = useState<RefrigeratorItem | null>(null);
 
-  // 입력 폼 상태
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<IngredientMaster[]>([]);
   const [selectedIngredient, setSelectedIngredient] = useState<IngredientMaster | null>(null);
   const [isSearching, setIsSearching] = useState(false);
 
-  // 카테고리 직접 선택 (등록 모달용)
   const [selectedFormCategory, setSelectedFormCategory] = useState<string>('채소');
-
   const [quantity, setQuantity] = useState('1');
   const [unit, setUnit] = useState<UnitType>('개');
   const [storageType, setStorageType] = useState<StorageType>('냉장');
 
-  // 유통기한 날짜 선택 전용 상태
   const today = new Date();
   const todayStr = today.toISOString().split('T')[0];
 
@@ -87,7 +80,6 @@ export default function CartScreen() {
 
   const expiredAt = `${selectedYear}-${selectedMonth}-${selectedDay}`;
 
-  // 1. 냉장고 목록 조회
   const fetchInventory = async () => {
     try {
       setLoading(true);
@@ -104,7 +96,6 @@ export default function CartScreen() {
     fetchInventory();
   }, []);
 
-  // 각 카테고리별 등록된 재료 개수 계산
   const categoryCounts = React.useMemo(() => {
     const counts: { [key: string]: number } = { 전체: items.length };
     items.forEach((item) => {
@@ -114,7 +105,6 @@ export default function CartScreen() {
     return counts;
   }, [items]);
 
-  // 선택된 카테고리 필터에 따른 그룹화 섹션 생성
   const groupedSections = React.useMemo(() => {
     const filteredItems = items.filter((item) => {
       if (selectedFilterCategory === '전체') return true;
@@ -137,7 +127,6 @@ export default function CartScreen() {
     }));
   }, [items, selectedFilterCategory]);
 
-  // 2. 식재료 검색
   const handleSearchIngredient = async (text: string) => {
     setSearchQuery(text);
     setSelectedIngredient(null);
@@ -191,7 +180,7 @@ export default function CartScreen() {
     setModalVisible(true);
   };
 
-  // 3. 저장 실행
+  // 💡 마스터 식재료 확인 및 자동 생성 후 냉장고 등록 로직 반영
   const handleSaveItem = async () => {
     const ingredientName = searchQuery.trim();
     if (!ingredientName) {
@@ -219,23 +208,26 @@ export default function CartScreen() {
         });
         showAlert('성공', '식재료 정보가 수정되었습니다.', 'success');
       } else {
+        let targetIngredientId = selectedIngredient?.id;
+
+        // 1. 만약 검색을 통해 선택된 마스터 ID가 없다면, POST /api/v1/ingredients/ 로 신규 마스터 생성[cite: 11]
+        if (!targetIngredientId) {
+          const newMasterRes = await InventoryService.createIngredient({
+            name: ingredientName,
+            category: selectedFormCategory,
+            unit: unit,
+            amount: 0,
+          });
+          targetIngredientId = newMasterRes.data.id;
+        }
+
+        // 2. 획득한 마스터 ID를 바탕으로 POST /api/v1/user-refrigerators/ 요청[cite: 12]
         const payload: any = {
-          user: 1,
-          user_id: 1,
+          ingredient: targetIngredientId,
           quantity: numQuantity,
-          unit,
           storage_type: storageType,
           expired_at: expiredAt,
-          category: selectedFormCategory,
         };
-
-        if (selectedIngredient) {
-          payload.ingredient = selectedIngredient.id;
-          payload.ingredient_id = selectedIngredient.id;
-        } else {
-          payload.name = ingredientName;
-          payload.ingredient_name = ingredientName;
-        }
 
         await InventoryService.addRefrigeratorItem(payload);
         showAlert('성공', `'${ingredientName}'이(가) 냉장고에 등록되었습니다.`, 'success');
@@ -318,7 +310,7 @@ export default function CartScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* 🖼️ 카테고리 그리드 선택 메뉴 (이미지 시안 스타일 구현) */}
+      {/* 카테고리 그리드 선택 메뉴 */}
       <View style={styles.categoryMenuContainer}>
         <Text style={styles.categoryMenuHeader}>카테고리 선택</Text>
         <View style={styles.categoryGrid}>
@@ -352,7 +344,7 @@ export default function CartScreen() {
         </View>
       </View>
 
-      {/* 선택된 카테고리의 식재료 목록 */}
+      {/* 목록 */}
       <SectionList
         sections={groupedSections}
         keyExtractor={(item) => item.id.toString()}
@@ -406,7 +398,7 @@ export default function CartScreen() {
         }}
       />
 
-      {/* 식재료 등록/수정 모달 */}
+      {/* 등록/수정 모달 */}
       <Modal visible={modalVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -453,7 +445,7 @@ export default function CartScreen() {
                     </View>
                   ) : searchQuery.trim() ? (
                     <View style={[styles.selectedBadge, { backgroundColor: '#FFF4E5' }]}>
-                      <Text style={[styles.selectedText, { color: '#E65100' }]}>직접 등록: <Text style={{ fontWeight: '800' }}>{searchQuery.trim()}</Text></Text>
+                      <Text style={[styles.selectedText, { color: '#E65100' }]}>신규 마스터 자동 생성 등록: <Text style={{ fontWeight: '800' }}>{searchQuery.trim()}</Text></Text>
                     </View>
                   ) : null}
                 </>
@@ -463,7 +455,6 @@ export default function CartScreen() {
                 </View>
               )}
 
-              {/* 카테고리 직접 선택 칩 */}
               <Text style={styles.label}>카테고리 선택</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                 <View style={styles.pickerRow}>
@@ -479,7 +470,6 @@ export default function CartScreen() {
                 </View>
               </ScrollView>
 
-              {/* 수량 및 단위 */}
               <Text style={styles.label}>수량 및 단위</Text>
               <View style={styles.row}>
                 <TextInput
@@ -555,7 +545,6 @@ export default function CartScreen() {
               </TouchableOpacity>
             </View>
 
-            {/* 연도 선택 */}
             <Text style={styles.pickerLabel}>연도 선택</Text>
             <View style={styles.pickerRow}>
               {YEARS.map((y) => (
@@ -571,7 +560,6 @@ export default function CartScreen() {
               ))}
             </View>
 
-            {/* 월 선택 */}
             <Text style={styles.pickerLabel}>월 선택</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 4 }}>
               <View style={styles.pickerRow}>
@@ -589,7 +577,6 @@ export default function CartScreen() {
               </View>
             </ScrollView>
 
-            {/* 일 선택 */}
             <Text style={styles.pickerLabel}>일 선택</Text>
             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginVertical: 4 }}>
               <View style={styles.pickerRow}>
@@ -607,7 +594,6 @@ export default function CartScreen() {
               </View>
             </ScrollView>
 
-            {/* 빠른 날짜 지정 */}
             <Text style={[styles.pickerLabel, { marginTop: 14 }]}>빠른 날짜 지정</Text>
             <View style={styles.quickDateRow}>
               <TouchableOpacity style={styles.quickDateChip} onPress={() => addDays(3)}>
@@ -644,7 +630,6 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 22, fontWeight: '800' },
   addBtn: { backgroundColor: Colors.light.primary, padding: 8, borderRadius: 20 },
 
-  /* 카테고리 그리드 메뉴 스타일 */
   categoryMenuContainer: { paddingHorizontal: 16, marginBottom: 10 },
   categoryMenuHeader: { fontSize: 15, fontWeight: '800', color: '#333', marginBottom: 10 },
   categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
