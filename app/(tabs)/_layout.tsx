@@ -36,7 +36,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="home"
         options={{
-          title: 'Home',
+          title: '홈',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons size={24} name={focused ? 'home' : 'home-outline'} color={color} />
           ),
@@ -46,7 +46,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="recipes"
         options={{
-          title: 'Recipes',
+          title: '레시피',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons size={24} name={focused ? 'heart' : 'heart-outline'} color={color} />
           ),
@@ -56,7 +56,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="scan"
         options={{
-          title: 'Scan',
+          title: '스캔',
           tabBarIconStyle: styles.scanIconWrapper,
           tabBarIcon: ({ focused }) => (
             <View 
@@ -81,7 +81,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="cart"
         options={{
-          title: 'Cart',
+          title: '냉장고',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons size={24} name={focused ? 'cart' : 'cart-outline'} color={color} />
           ),
@@ -91,7 +91,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: '마이',
           tabBarIcon: ({ color, focused }) => (
             <Ionicons size={24} name={focused ? 'settings' : 'settings-outline'} color={color} />
           ),
