@@ -1,9 +1,17 @@
+import { Colors } from "@/constants/theme";
+import { useAuthStore } from "@/store/auth.store";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
-import { StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator, Alert } from "react-native";
-import { Colors } from "@/constants/theme";
-import { useAuthStore } from "@/store/auth.store";
+import {
+  ActivityIndicator,
+  Alert,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -31,12 +39,27 @@ export default function Login() {
 
       <View style={styles.inputContainer}>
         <Ionicons name="person" size={20} color="#7A7A7A" style={styles.inputIcon} />
-        <TextInput placeholder="이메일" placeholderTextColor="#7A7A7A" style={styles.input} value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" />
+        <TextInput
+          placeholder="이메일"
+          placeholderTextColor="#7A7A7A"
+          style={styles.input}
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+        />
       </View>
 
       <View style={styles.inputContainer}>
         <Ionicons name="lock-closed" size={20} color="#7A7A7A" style={styles.inputIcon} />
-        <TextInput placeholder="비밀번호" placeholderTextColor="#7A7A7A" secureTextEntry={securePassword} style={styles.input} value={password} onChangeText={setPassword} />
+        <TextInput
+          placeholder="비밀번호"
+          placeholderTextColor="#7A7A7A"
+          secureTextEntry={securePassword}
+          style={styles.input}
+          value={password}
+          onChangeText={setPassword}
+        />
         <TouchableOpacity activeOpacity={0.7} onPress={() => setSecurePassword((prev) => !prev)}>
           <Ionicons name={securePassword ? "eye-off-outline" : "eye-outline"} size={22} color="#7A7A7A" />
         </TouchableOpacity>
@@ -46,11 +69,16 @@ export default function Login() {
         <Text style={styles.forgotText}>비밀번호를 잊으셨나요?</Text>
       </TouchableOpacity>
 
-      <TouchableOpacity style={[styles.loginButton, isLoading && { opacity: 0.7 }]} onPress={handleLogin} disabled={isLoading}>
+      <TouchableOpacity
+        style={[styles.loginButton, isLoading && { opacity: 0.7 }]}
+        onPress={handleLogin}
+        disabled={isLoading}
+      >
         {isLoading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.loginButtonText}>로그인</Text>}
       </TouchableOpacity>
 
-      <Text style={styles.divider}>- 간편 로그인 -</Text>
+      <Text style={styles.divider}>간편 로그인</Text>
+      
       <View style={styles.socialContainer}>
         <TouchableOpacity style={styles.socialButton}><Ionicons name="logo-google" size={28} color="#000" /></TouchableOpacity>
         <TouchableOpacity style={styles.socialButton}><Ionicons name="logo-apple" size={28} color="#000" /></TouchableOpacity>
