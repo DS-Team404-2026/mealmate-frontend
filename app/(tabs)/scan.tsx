@@ -44,7 +44,7 @@ export default function ScanScreen() {
   const [scannedItems, setScannedItems] = useState<any[] | null>(null);
   const [purchaseDate, setPurchaseDate] = useState<string | null>(null);
 
-  // 개별 식재료 수정 모달 상태 (cart.tsx와 동일한 사전 검색/선택 상태 포함)
+  // 개별 식재료 수정 모달 상태
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
 
@@ -98,7 +98,7 @@ export default function ScanScreen() {
     }
   };
 
-  // 2-1. 영수증 이미지 추출 API
+  // 2-1. 영수증 이미지 추출 및 식재료명 정돈 API 연동
   const sendReceiptToAI = async (uri: string) => {
     try {
       setLoading(true);
@@ -113,6 +113,7 @@ export default function ScanScreen() {
         type,
       });
 
+      // Step 1: 영수증 이미지 인식 API
       const response = await apiClient.post('/api/v1/ingredients/receipt-recognize/', formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
@@ -121,19 +122,65 @@ export default function ScanScreen() {
 
       if (response.data && response.data.success) {
         setPurchaseDate(response.data.purchase_date);
+        const rawResults = response.data.results || [];
 
-        const normalizedResults = (response.data.results || []).map((item: any) => {
-          const name = item.ingredient_name || item.display_name || item.name || '식재료';
-          return {
-            ingredient_id: item.ingredient_id || null,
-            ingredient_name: name,
-            category: item.category || '채소',
-            quantity: item.quantity ?? 1,
-            unit: UNIT_OPTIONS.includes(item.unit) ? item.unit : '개',
-            storage_type: item.storage_type || '냉장',
-            expired_at: item.expired_at || todayStr,
-          };
-        });
+        // Step 2: 인식된 식재료명을 검증/정돈 API 페이로드로 변환
+        const confirmPayload = rawResults.map((item: any) => ({
+          ingredient_name: item.ingredient_name || item.display_name || item.name || '식재료',
+          quantity: Math.max(1, Math.round(Number(item.quantity) || 1)),
+          unit: item.unit || '개',
+        }));
+
+        // Step 3: 식재료명 정돈 API 호출
+        try {
+          const validateRes = await apiClient.post('/api/v1/ingredients/validate/', {
+            user_confirmed_ingredients: confirmPayload,
+          });
+
+          if (
+            validateRes.data &&
+            validateRes.data.data &&
+            Array.isArray(validateRes.data.data.validated_ingredients)
+          ) {
+            const validatedList = validateRes.data.data.validated_ingredients;
+
+            // Step 4: 정돈된 데이터를 프론트 상태 모델과 병합하여 화면 출력
+            const normalizedResults = validatedList.map((valItem: any, index: number) => {
+              const originalRaw = rawResults[index] || {};
+              return {
+                ingredient_id: valItem.ingredient_id || null,
+                ingredient_name: valItem.ingredient_name || '식재료',
+                category: originalRaw.category || '채소',
+                quantity: valItem.quantity ?? 1,
+                unit: UNIT_OPTIONS.includes(valItem.unit) ? valItem.unit : '개',
+                storage_type: originalRaw.storage_type || '냉장',
+                expired_at: originalRaw.expired_at || todayStr,
+                registered: valItem.registered ?? false,
+              };
+            });
+
+            setScannedItems(normalizedResults);
+            showAlert(
+              '인식 완료',
+              validateRes.data.message || '영수증 식재료 인식이 완료되었습니다.',
+              'success'
+            );
+            return;
+          }
+        } catch (validateErr) {
+          console.error('식재료 정돈 API 호출 실패 (기존 인식 데이터 사용):', validateErr);
+        }
+
+        // 정돈 API 실패시 Fallback (기존 인식 데이터 사용)
+        const normalizedResults = rawResults.map((item: any) => ({
+          ingredient_id: item.ingredient_id || null,
+          ingredient_name: item.ingredient_name || item.display_name || item.name || '식재료',
+          category: item.category || '채소',
+          quantity: Math.max(1, Math.round(Number(item.quantity) || 1)),
+          unit: UNIT_OPTIONS.includes(item.unit) ? item.unit : '개',
+          storage_type: item.storage_type || '냉장',
+          expired_at: item.expired_at || todayStr,
+        }));
 
         setScannedItems(normalizedResults);
         showAlert('인식 완료', response.data.message || '영수증 인식이 완료되었습니다.', 'success');
@@ -189,7 +236,7 @@ export default function ScanScreen() {
         });
 
         setScannedItems(normalizedResults);
-        showAlert('인식 완료', response.data.message || '식재료 인식이 완료되었습니다.', 'success');
+        showAlert('인식 완료', response.data.message || '냉장고 식재료 인식이 완료되었습니다.', 'success');
       }
     } catch (error: any) {
       console.error('냉장고 인식 실패:', error);
@@ -203,7 +250,7 @@ export default function ScanScreen() {
     }
   };
 
-  // 💡 cart.tsx와 동일한 사전 실시간 검색 처리
+  // 사전 실시간 검색 처리
   const handleSearchIngredient = async (text: string) => {
     setSearchQuery(text);
     setSelectedIngredient(null);
@@ -237,13 +284,13 @@ export default function ScanScreen() {
     setSearchResults([]);
   };
 
-  // 3. 개별 항목 삭제
+  // 개별 항목 삭제
   const handleDeleteScannedItem = (index: number) => {
     if (!scannedItems) return;
     setScannedItems((prev) => (prev ? prev.filter((_, i) => i !== index) : null));
   };
 
-  // 4. 개별 항목 수정 모달 오픈 (사전 선택 및 검색 상태 초기화)
+  // 개별 항목 수정 모달 오픈
   const openEditModal = (index: number) => {
     if (!scannedItems) return;
     const item = scannedItems[index];
@@ -272,18 +319,19 @@ export default function ScanScreen() {
     setEditModalVisible(true);
   };
 
-  // 5. 수정 내역 반영
+  // 수정 내역 반영
   const handleSaveEditedItem = () => {
     const ingredientName = searchQuery.trim();
     if (!ingredientName) {
       showAlert('알림', '식재료 이름을 입력해주세요.', 'warning');
       return;
     }
-    const qty = parseFloat(editQuantity);
-    if (isNaN(qty) || qty <= 0) {
+    const rawQty = parseFloat(editQuantity);
+    if (isNaN(rawQty) || rawQty <= 0) {
       showAlert('알림', '올바른 수량을 입력해주세요.', 'warning');
       return;
     }
+    const integerQuantity = Math.max(1, Math.round(rawQty));
 
     if (editingIndex !== null && scannedItems) {
       const updated = [...scannedItems];
@@ -292,7 +340,7 @@ export default function ScanScreen() {
         ingredient_id: selectedIngredient ? selectedIngredient.id : null,
         ingredient_name: ingredientName,
         category: editCategory,
-        quantity: qty,
+        quantity: integerQuantity,
         unit: editUnit,
         storage_type: editStorage,
         expired_at: editExpiredAt,
@@ -313,7 +361,7 @@ export default function ScanScreen() {
   const daysInMonth = new Date(parseInt(selectedYear), parseInt(selectedMonth), 0).getDate();
   const DAYS = Array.from({ length: daysInMonth }, (_, i) => String(i + 1).padStart(2, '0'));
 
-  // 💡 6. cart.tsx와 100% 동일한 사전 확인 & 신규 마스터 자동 생성 및 사용자 냉장고 최종 등록 로직
+  // 사용자 냉장고 최종 등록 로직
   const handleConfirmAndRegister = async () => {
     if (!scannedItems || scannedItems.length === 0) {
       showAlert('알림', '등록할 식재료가 없습니다.', 'warning');
@@ -327,7 +375,6 @@ export default function ScanScreen() {
         const ingredientName = (item.ingredient_name || '').trim();
         let targetIngredientId = item.ingredient_id;
 
-        // cart.tsx의 로직과 동일하게 사전 매핑된 targetIngredientId가 없는 경우 마스터 등록을 먼저 수행[cite: 21]
         if (!targetIngredientId) {
           const newMasterRes = await InventoryService.createIngredient({
             name: ingredientName || '식재료',
@@ -338,10 +385,12 @@ export default function ScanScreen() {
           targetIngredientId = newMasterRes.data.id;
         }
 
-        // 마스터 식재료 id를 기반으로 사용자 냉장고에 등록[cite: 21]
+        const rawQty = parseFloat(item.quantity);
+        const integerQuantity = Math.max(1, Math.round(isNaN(rawQty) ? 1 : rawQty));
+
         const payload = {
           ingredient: targetIngredientId,
-          quantity: Number(item.quantity) || 1,
+          quantity: integerQuantity,
           unit: item.unit || '개',
           storage_type: item.storage_type || '냉장',
           expired_at: item.expired_at || todayStr,
@@ -441,7 +490,9 @@ export default function ScanScreen() {
           <TouchableOpacity style={styles.cancelButton} onPress={() => setScannedItems(null)}>
             <Text style={styles.cancelButtonText}>다시 스캔하기</Text>
           </TouchableOpacity>
-          <View style={{ height: 40 }} />
+
+          {/* 💡 하단 탭바에 버튼이 가려지지 않도록 하단 여백을 120으로 확장 */}
+          <View style={{ height: 120 }} />
         </ScrollView>
       ) : (
         <View style={styles.centerBox}>
@@ -466,7 +517,7 @@ export default function ScanScreen() {
         </View>
       )}
 
-      {/* 수정 모달 (cart.tsx와 동일한 사전 검색 & 신규 마스터 매핑 뱃지 구성) */}
+      {/* 수정 모달 */}
       <Modal visible={editModalVisible} animationType="slide" transparent>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
