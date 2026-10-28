@@ -1,361 +1,318 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, Dimensions, FlatList } from 'react-native';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, TextInput, Modal, KeyboardAvoidingView, Platform } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-const THEME_GREEN = '#417D7A';
-
-// 💡 누락되었던 r-5 ~ r-8 데이터를 완벽하게 복구하여 8종의 고유 레시피를 모두 제공합니다.
-const RECIPE_DETAILS_DB: Record<string, any> = {
-  'r-1': {
-    title: '저염 소고기 사과 샐러드',
-    rating: 4.8,
-    reviews: '1,240',
-    matchRate: 98,
-    nutrition: { kcal: 320, carbs: 24, protein: 35, fat: 12 },
-    images: ['https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=800'],
-    ingredients: [{ name: '소고기', has: true }, { name: '사과', has: true }, { name: '양상추', has: true }, { name: '발사믹', has: false }],
-    steps: [
-      { step: 1, title: '소고기 굽기', desc: '기름을 두르지 않은 팬에 소고기를 노릇하게 구워 한입 크기로 자릅니다.' },
-      { step: 2, title: '사과 손질하기', desc: '사과는 껍질째 깨끗이 씻어 얇게 슬라이스합니다.' },
-      { step: 3, title: '드레싱 만들기', desc: '저염 발사믹 식초와 올리브유를 1:1 비율로 섞어 준비합니다.' },
-      { step: 4, title: '플레이팅', desc: '접시에 채소와 구운 소고기, 사과를 올리고 드레싱을 뿌려 완성합니다.' },
-    ],
-  },
-  'r-2': {
-    title: '사과 소스를 곁들인 양갈비 구이',
-    rating: 4.9,
-    reviews: '8,320',
-    matchRate: 85,
-    nutrition: { kcal: 450, carbs: 18, protein: 42, fat: 25 },
-    images: ['https://images.unsplash.com/photo-1602470520998-f4a52199a3d6?w=800'],
-    ingredients: [{ name: '양갈비', has: true }, { name: '사과', has: true }, { name: '양파', has: true }, { name: '로즈마리', has: false }],
-    steps: [
-      { step: 1, title: '양갈비 마리네이드', desc: '양갈비에 올리브오일, 소금 약간, 후추를 뿌려 10분간 재워둡니다.' },
-      { step: 2, title: '사과 소스 끓이기', desc: '사과와 양파를 잘게 다져 냄비에 넣고 약불에서 은근하게 졸입니다.' },
-      { step: 3, title: '고기 굽기', desc: '센 불로 달군 팬에 양갈비의 겉면을 바삭하게 익히고, 약불로 줄여 속까지 익힙니다.' },
-      { step: 4, title: '마무리', desc: '구운 양갈비 위에 완성된 천연 사과 소스를 듬뿍 올려냅니다.' },
-    ],
-  },
-  'r-3': {
-    title: '양배추 소고기 찜',
-    rating: 4.6,
-    reviews: '3,450',
-    matchRate: 100,
-    nutrition: { kcal: 280, carbs: 15, protein: 30, fat: 8 },
-    images: ['https://images.unsplash.com/photo-1588166524941-3bf61a9c41db?w=800'],
-    ingredients: [{ name: '소고기', has: true }, { name: '양배추', has: true }, { name: '대파', has: true }],
-    steps: [
-      { step: 1, title: '양배추 데치기', desc: '양배추 잎을 뜯어 끓는 물에 살짝 데쳐 부드럽게 만듭니다.' },
-      { step: 2, title: '소고기 밑간', desc: '얇게 썬 소고기에 다진 파와 마늘, 간장을 소량 넣어 버무립니다.' },
-      { step: 3, title: '돌돌 말기', desc: '데친 양배추 위에 양념한 소고기를 얹고 터지지 않게 돌돌 말아줍니다.' },
-      { step: 4, title: '찜기에 찌기', desc: '김이 오르는 찜기에 넣고 10분~15분간 쪄내면 완성됩니다.' },
-    ],
-  },
-  'r-4': {
-    title: '오이 소고기 볶음',
-    rating: 4.5,
-    reviews: '1,200',
-    matchRate: 90,
-    nutrition: { kcal: 210, carbs: 8, protein: 25, fat: 9 },
-    images: ['https://images.unsplash.com/photo-1512058564366-18510be2db19?w=800'],
-    ingredients: [{ name: '소고기', has: true }, { name: '오이', has: true }, { name: '홍고추', has: false }],
-    steps: [
-      { step: 1, title: '오이 절이기', desc: '오이를 동그랗게 썰어 소금에 10분간 절인 뒤 물기를 꽉 짜냅니다.' },
-      { step: 2, title: '소고기 볶기', desc: '팬에 소고기를 넣고 핏기가 가실 때까지 빠르게 볶아줍니다.' },
-      { step: 3, title: '함께 볶아내기', desc: '절인 오이를 넣고 센 불에서 30초간 빠르게 섞어 아삭함을 살립니다.' },
-    ],
-  },
-  'r-5': {
-    title: '건강식 소고기 사과 카레',
-    rating: 4.8,
-    reviews: '5,120',
-    matchRate: 88,
-    nutrition: { kcal: 380, carbs: 45, protein: 22, fat: 11 },
-    images: ['https://images.unsplash.com/photo-1589302168068-964664d93cb0?w=800'],
-    ingredients: [{ name: '소고기', has: true }, { name: '사과', has: true }, { name: '카레가루', has: false }, { name: '당근', has: false }],
-    steps: [
-      { step: 1, title: '재료 손질', desc: '소고기, 사과, 당근을 모두 깍둑썰기로 썰어 준비합니다.' },
-      { step: 2, title: '볶기', desc: '냄비에 고기를 먼저 볶다가 겉면이 익으면 당근과 사과를 넣고 함께 볶습니다.' },
-      { step: 3, title: '끓이기', desc: '물을 붓고 재료가 익을 때까지 푹 끓여줍니다.' },
-      { step: 4, title: '카레 풀기', desc: '불을 끄고 카레가루를 푼 뒤, 다시 약불에서 뭉근하게 끓여냅니다.' },
-    ],
-  },
-  'r-6': {
-    title: '소고기 채소 듬뿍 샌드위치',
-    rating: 4.7,
-    reviews: '2,900',
-    matchRate: 85,
-    nutrition: { kcal: 340, carbs: 32, protein: 28, fat: 10 },
-    images: ['https://images.unsplash.com/photo-1528735602780-2552fd46c7af?w=800'],
-    ingredients: [{ name: '소고기', has: true }, { name: '양배추', has: true }, { name: '식빵', has: false }, { name: '머스터드', has: false }],
-    steps: [
-      { step: 1, title: '고기 굽기', desc: '소고기는 얇게 썰어 간장 약간과 후추로 간을 한 뒤 바싹 굽습니다.' },
-      { step: 2, title: '채소 준비', desc: '양배추를 얇게 채 썰고 찬물에 담갔다 빼서 아삭함을 살립니다.' },
-      { step: 3, title: '빵 굽기', desc: '식빵을 마른 팬에 노릇하게 굽고 한쪽 면에 머스터드를 얇게 바릅니다.' },
-      { step: 4, title: '조립하기', desc: '식빵 위에 양배추 듬뿍, 소고기를 올리고 남은 빵으로 덮어 반으로 자릅니다.' },
-    ],
-  },
-  'r-7': {
-    title: '아삭한 오이 사과 무침',
-    rating: 4.9,
-    reviews: '4,100',
-    matchRate: 100,
-    nutrition: { kcal: 95, carbs: 22, protein: 2, fat: 0 },
-    images: ['https://images.unsplash.com/photo-1512621776951-a57141f2eefd?w=800'],
-    ingredients: [{ name: '오이', has: true }, { name: '사과', has: true }, { name: '식초', has: false }],
-    steps: [
-      { step: 1, title: '재료 썰기', desc: '오이와 사과를 깨끗이 씻은 후 먹기 좋은 크기로 채 썰어 준비합니다.' },
-      { step: 2, title: '양념장 만들기', desc: '식초, 소금 한 꼬집, 대체당(알룰로스 등)을 섞어 새콤달콤한 저염 양념을 만듭니다.' },
-      { step: 3, title: '버무리기', desc: '볼에 썰어둔 오이와 사과를 담고 양념장을 부어 가볍게 버무려 완성합니다.' },
-    ],
-  },
-  'r-8': {
-    title: '양배추 사과 클렌즈 주스',
-    rating: 4.5,
-    reviews: '1,850',
-    matchRate: 100,
-    nutrition: { kcal: 120, carbs: 28, protein: 2, fat: 0 },
-    images: ['https://images.unsplash.com/photo-1610970881699-44a5587ce578?w=800'],
-    ingredients: [{ name: '양배추', has: true }, { name: '사과', has: true }, { name: '물', has: false }],
-    steps: [
-      { step: 1, title: '재료 손질', desc: '양배추는 듬성듬성 썰고, 사과는 씨를 제거한 뒤 껍질째 깍둑썰기합니다.' },
-      { step: 2, title: '믹서기에 넣기', desc: '준비한 양배추와 사과를 믹서기에 넣고 물 한 컵을 붓습니다.' },
-      { step: 3, title: '갈아주기', desc: '건더기가 부드러워질 때까지 충분히 갈아 컵에 따라냅니다.' },
-    ],
-  },
-  'default': {
-    title: '오이 소고기 볶음',
-    rating: 4.5,
-    reviews: '1,200',
-    matchRate: 90,
-    nutrition: { kcal: 210, carbs: 8, protein: 25, fat: 9 },
-    images: ['https://images.unsplash.com/photo-1512058564366-18510be2db19?w=800'],
-    ingredients: [{ name: '소고기', has: true }, { name: '오이', has: true }, { name: '홍고추', has: false }],
-    steps: [
-      { step: 1, title: '오이 절이기', desc: '오이를 동그랗게 썰어 소금에 10분간 절인 뒤 물기를 꽉 짜냅니다.' },
-      { step: 2, title: '소고기 볶기', desc: '팬에 소고기를 넣고 핏기가 가실 때까지 빠르게 볶아줍니다.' },
-      { step: 3, title: '함께 볶아내기', desc: '절인 오이를 넣고 센 불에서 30초간 빠르게 섞어 아삭함을 살립니다.' },
-    ],
-  }
-};
-
-const SUBSTITUTE_ITEMS = [
-  { id: 'sub-1', name: '양파', kcal: 40, qty: '2개', storage: '상온', date: '2026-06-25', image: 'https://images.unsplash.com/photo-1618512496248-a07fe83aa8cb?w=400' },
-  { id: 'sub-2', name: '오이', kcal: 15, qty: '1개', storage: '냉장', date: '2026-06-20', image: 'https://images.unsplash.com/photo-1449339854873-750e6df51303?w=400' },
-];
+import { Ionicons } from '@expo/vector-icons';
+import { Colors } from '@/constants/theme';
+import { useAlert } from '@/components/CustomAlert';
+import { RecipeService, RecipeDetailResponse } from '@/services/recipe.service';
 
 export default function RecipeDetailScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
-  
-  const recipe = RECIPE_DETAILS_DB[id as string] || RECIPE_DETAILS_DB['default'];
-  const [activeImage, setActiveImage] = useState(0);
+  const { id, recommendation_id } = useLocalSearchParams();
+  const { showAlert } = useAlert();
+
+  const recipeId = Number(id);
+  const recId = recommendation_id ? Number(recommendation_id) : null;
+
+  const [loading, setLoading] = useState(true);
+  const [detail, setDetail] = useState<RecipeDetailResponse | null>(null);
+  const [steps, setSteps] = useState<{ step_number: number; instruction: string }[]>([]);
+
+  const [saveModalVisible, setSaveModalVisible] = useState(false);
+  const [preference, setPreference] = useState<'상' | '중' | '하'>('상');
+
+  const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
+  const [likeDislike, setLikeDislike] = useState<number>(3); 
+  const [diffResult, setDiffResult] = useState<number>(2);
+  const [comment, setComment] = useState('');
+
+  const fetchRecipeInfo = async () => {
+    try {
+      setLoading(true);
+      const [detailRes, stepsRes] = await Promise.all([
+        RecipeService.getRecipeDetail(recipeId),
+        RecipeService.getRecipeSteps(recipeId),
+      ]);
+
+      if (detailRes.data) setDetail(detailRes.data);
+      if (stepsRes.data && stepsRes.data.steps) {
+        setSteps(stepsRes.data.steps);
+      }
+    } catch (error) {
+      console.error('레시피 상세 조회 실패:', error);
+      showAlert('오류', '레시피 정보를 불러올 수 없습니다.', 'warning');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (recipeId) fetchRecipeInfo();
+  }, [recipeId]);
+
+  const handleSaveRecipeBook = async () => {
+    try {
+      await RecipeService.saveRecipeBook({
+        recipe_id: recipeId,
+        is_favorite: true,
+        preference: preference,
+        fail_reason: null
+      });
+      showAlert('저장 완료', '나의 레시피북에 저장되었습니다.', 'success');
+      setSaveModalVisible(false);
+    } catch (error) {
+      console.error('레시피 저장 실패:', error);
+      showAlert('오류', '레시피 저장에 실패했습니다.', 'warning');
+    }
+  };
+
+  const handleSubmitFeedback = async () => {
+    if (!recId) {
+      showAlert('알림', '추천 기록 정보가 없어 후기를 작성할 수 없습니다.', 'warning');
+      return;
+    }
+    try {
+      await RecipeService.createFeedback({
+        recommendation_id: recId,
+        like_dislike: likeDislike,
+        difficulty_result: diffResult,
+        comment: comment.trim(),
+      });
+      showAlert('등록 성공', '레시피 후기가 정상 등록되었습니다.', 'success');
+      setFeedbackModalVisible(false);
+      setComment('');
+    } catch (error) {
+      console.error('후기 등록 실패:', error);
+      showAlert('오류', '후기 등록 중 문제가 발생했습니다.', 'warning');
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={[styles.container, styles.center]}>
+        <ActivityIndicator size="large" color={Colors.light.primary} />
+      </View>
+    );
+  }
+
+  // 수정사항 4: 통짜 텍스트를 콤마 또는 줄바꿈 기준으로 배열화
+  const ingredientsList = detail?.ingredient_lines
+    ?.split(/,|\n/)
+    .map(item => item.trim())
+    .filter(Boolean) || [];
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* 상단 헤더 */}
+    <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-          <Ionicons name="chevron-back" size={26} color="#000" />
+        <TouchableOpacity onPress={() => router.back()} style={styles.circleBtn}>
+          <Ionicons name="arrow-back" size={22} color="#111" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>레시피 상세</Text>
-        <View style={{ width: 40 }} />
-      </View>
-
-      {/* 레시피 썸네일 캐러셀 */}
-      <View style={styles.imageSection}>
-        <Image source={{ uri: recipe.images[0] }} style={styles.mainImage} />
-        <TouchableOpacity style={styles.arrowRightBtn}>
-          <Ionicons name="chevron-forward" size={20} color="#333" />
+        <Text style={styles.headerTitle} numberOfLines={1}>{detail?.title || '레시피 상세'}</Text>
+        <TouchableOpacity onPress={() => setSaveModalVisible(true)} style={styles.circleBtn}>
+          <Ionicons name="bookmark-outline" size={22} color={Colors.light.primary} />
         </TouchableOpacity>
       </View>
-      
-      {/* 인디케이터 */}
-      <View style={styles.indicatorRow}>
-        {[0, 1, 2, 3, 4].map(idx => (
-          <View key={idx} style={[styles.dot, activeImage === idx && styles.dotActive]} />
-        ))}
-      </View>
 
-      {/* 영양 정보 섹션 */}
-      <View style={styles.contentPadding}>
-        <Text style={styles.nutritionTitle}>1인분 기준</Text>
-        <View style={styles.nutritionBox}>
-          <View style={styles.nutriItem}>
-            <Ionicons name="flame-outline" size={28} color={THEME_GREEN} />
-            <Text style={styles.nutriValue}>{recipe.nutrition.kcal}</Text>
-            <Text style={styles.nutriLabel}>kcal</Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.nutriItem}>
-            <MaterialCommunityIcons name="leaf" size={26} color={THEME_GREEN} />
-            <Text style={styles.nutriValue}>{recipe.nutrition.carbs}g</Text>
-            <Text style={styles.nutriLabel}>탄수화물</Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.nutriItem}>
-            <Ionicons name="barbell-outline" size={28} color={THEME_GREEN} />
-            <Text style={styles.nutriValue}>{recipe.nutrition.protein}g</Text>
-            <Text style={styles.nutriLabel}>단백질</Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.nutriItem}>
-            <Ionicons name="water-outline" size={28} color={THEME_GREEN} />
-            <Text style={styles.nutriValue}>{recipe.nutrition.fat}g</Text>
-            <Text style={styles.nutriLabel}>지방</Text>
+      <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+        <View style={styles.summaryCard}>
+          <Text style={styles.recipeTitle}>{detail?.title}</Text>
+          <View style={styles.metaRow}>
+            <View style={styles.metaChip}>
+              <Ionicons name="time-outline" size={15} color={Colors.light.primary} />
+              <Text style={styles.metaText}>{detail?.cooking_time}분</Text>
+            </View>
+            <View style={styles.metaChip}>
+              <Ionicons name="flame-outline" size={15} color={Colors.light.primary} />
+              <Text style={styles.metaText}>{detail?.calories} kcal</Text>
+            </View>
+            <View style={styles.metaChip}>
+              <Ionicons name="speedometer-outline" size={15} color={Colors.light.primary} />
+              <Text style={styles.metaText}>난이도 {detail?.difficulty}</Text>
+            </View>
           </View>
         </View>
 
-        {/* 타이틀 및 별점 */}
-        <View style={styles.titleRow}>
-          <Text style={styles.recipeTitle}>{recipe.title}</Text>
-          <View style={styles.ratingRow}>
-            {[1, 2, 3, 4].map(star => <Ionicons key={star} name="star" size={16} color={THEME_GREEN} />)}
-            <Ionicons name="star-half" size={16} color={THEME_GREEN} />
-            <Text style={styles.ratingScore}>{recipe.rating}</Text>
-            <Text style={styles.reviewCount}>리뷰 {recipe.reviews}개</Text>
+        {/* 수정사항 4: 필요 식재료 디자인 요소 적용 */}
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="basket-outline" size={20} color={Colors.light.primary} />
+            <Text style={styles.sectionTitle}>필요 식재료</Text>
+          </View>
+          <View style={styles.ingredientGrid}>
+            {ingredientsList.map((ing, idx) => (
+              <View key={idx} style={styles.ingredientChip}>
+                <Ionicons name="checkmark-circle" size={16} color={Colors.light.primary} />
+                <Text style={styles.ingredientChipText}>{ing}</Text>
+              </View>
+            ))}
           </View>
         </View>
 
-        {/* 냉장고 재료 매칭율 */}
-        <Text style={styles.matchRateText}>냉장고 재료 {recipe.matchRate}% 활용</Text>
-        <View style={styles.ingredientsRow}>
-          {recipe.ingredients.map((ing: any, idx: number) => (
-            <View key={idx} style={[styles.ingChip, !ing.has && styles.ingChipMissing]}>
-              <Text style={[styles.ingChipText, !ing.has && styles.ingChipTextMissing]}>{ing.name}</Text>
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="list-outline" size={20} color={Colors.light.primary} />
+            <Text style={styles.sectionTitle}>조리 순서</Text>
+          </View>
+          {steps.map((step) => (
+            <View key={step.step_number} style={styles.stepRow}>
+              <View style={styles.stepBadge}>
+                <Text style={styles.stepBadgeText}>{step.step_number}</Text>
+              </View>
+              <Text style={styles.stepDesc}>{step.instruction.replace(/^\d+\.\s*/, '')}</Text>
             </View>
           ))}
         </View>
 
-        {/* 조리 순서 타임라인 */}
-        <Text style={styles.sectionTitle}>조리 순서</Text>
-        <View style={styles.stepsContainer}>
-          <View style={styles.stepVerticalLine} />
-          
-          {recipe.steps.map((step: any, index: number) => (
-            <View key={index} style={styles.stepItem}>
-              <View style={styles.stepNumberCircle}>
-                <Text style={styles.stepNumberText}>{step.step}</Text>
-              </View>
-              <View style={styles.stepContent}>
-                <Text style={styles.stepTitle}>{step.title}</Text>
-                <Text style={styles.stepDesc}>{step.desc}</Text>
-              </View>
-            </View>
-          ))}
-        </View>
+        <View style={{ height: 24 }} />
+      </ScrollView>
+
+      {/* 수정사항 6: 하단 액션 바 높이(paddingBottom) 증가 */}
+      <View style={styles.bottomBar}>
+        {recId ? (
+          <TouchableOpacity style={[styles.actionBtn, { backgroundColor: '#E8F2F1' }]} onPress={() => setFeedbackModalVisible(true)} activeOpacity={0.85}>
+            <Ionicons name="chatbox-ellipses-outline" size={18} color={Colors.light.primary} />
+            <Text style={[styles.actionBtnText, { color: Colors.light.primary }]}>후기 작성</Text>
+          </TouchableOpacity>
+        ) : null}
+        <TouchableOpacity style={[styles.actionBtn, { backgroundColor: Colors.light.primary }]} onPress={() => setSaveModalVisible(true)} activeOpacity={0.85}>
+          <Ionicons name="bookmark" size={18} color="#FFF" />
+          <Text style={[styles.actionBtnText, { color: '#FFF' }]}>레시피북 저장</Text>
+        </TouchableOpacity>
       </View>
 
-      {/* 구분선 */}
-      <View style={styles.horizontalDivider} />
-
-      {/* 대체 가능한 식재료 섹션 */}
-      <View style={[styles.contentPadding, { paddingBottom: 40 }]}>
-        <Text style={styles.substituteTitle}>대체 가능한 식재료</Text>
-        <View style={styles.substituteHeaderRow}>
-          <Text style={styles.substituteCount}>{SUBSTITUTE_ITEMS.length}개의 재료</Text>
-          <View style={styles.filterBtns}>
-            <TouchableOpacity style={styles.actionBtn}>
-              <Text style={styles.actionBtnText}>정렬</Text>
-              <Ionicons name="swap-vertical" size={14} color="#000" style={{ marginLeft: 4 }} />
-            </TouchableOpacity>
-            <TouchableOpacity style={[styles.actionBtn, { marginLeft: 8 }]}>
-              <Text style={styles.actionBtnText}>필터</Text>
-              <Ionicons name="funnel-outline" size={14} color="#000" style={{ marginLeft: 4 }} />
+      <Modal visible={saveModalVisible} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHandle} />
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>레시피북 저장</Text>
+              <TouchableOpacity onPress={() => setSaveModalVisible(false)} style={styles.modalCloseBtn}>
+                <Ionicons name="close" size={20} color="#333" />
+              </TouchableOpacity>
+            </View>
+            <Text style={styles.label}>나의 선호도 평가</Text>
+            <View style={styles.choiceRow}>
+              {(['상', '중', '하'] as const).map((pref) => {
+                const active = preference === pref;
+                return (
+                  <TouchableOpacity key={pref} style={[styles.choiceBtn, active && styles.choiceBtnActive]} onPress={() => setPreference(pref)}>
+                    <Ionicons
+                      name={pref === '상' ? 'thumbs-up-outline' : pref === '중' ? 'ellipsis-horizontal-circle-outline' : 'thumbs-down-outline'}
+                      size={18}
+                      color={active ? '#FFF' : '#8A9399'}
+                    />
+                    <Text style={[styles.choiceText, active && styles.choiceTextActive]}>{pref}</Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+            <TouchableOpacity style={styles.submitBtn} onPress={handleSaveRecipeBook} activeOpacity={0.85}>
+              <Text style={styles.submitBtnText}>저장하기</Text>
             </TouchableOpacity>
           </View>
         </View>
+      </Modal>
 
-        <FlatList
-          data={SUBSTITUTE_ITEMS}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={item => item.id}
-          renderItem={({ item }) => (
-            <View style={styles.subCard}>
-              <View style={styles.subImageWrapper}>
-                <Image source={{ uri: item.image }} style={styles.subImage} resizeMode="cover" />
-              </View>
-              <Text style={styles.subCardName}>{item.name}</Text>
-              <Text style={styles.subCardInfo}>1인분 기준 | {item.kcal} kcal</Text>
-              <Text style={styles.subCardQty}>{item.qty}</Text>
-              <Text style={styles.subCardStorage}>{item.storage} 보관</Text>
-              <View style={styles.dateRow}>
-                <Ionicons name="calendar-outline" size={12} color="#888" style={{ marginRight: 4 }} />
-                <Text style={styles.subCardDate}>소비기한 {item.date}</Text>
-              </View>
+      <Modal visible={feedbackModalVisible} transparent animationType="slide">
+        <KeyboardAvoidingView style={styles.modalOverlay} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHandle} />
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>레시피 후기 등록</Text>
+              <TouchableOpacity onPress={() => setFeedbackModalVisible(false)} style={styles.modalCloseBtn}>
+                <Ionicons name="close" size={20} color="#333" />
+              </TouchableOpacity>
             </View>
-          )}
-        />
-      </View>
-    </ScrollView>
+            
+            <Text style={styles.label}>추천 만족도</Text>
+            <View style={styles.choiceRow}>
+              <TouchableOpacity style={[styles.choiceBtn, likeDislike === 3 && styles.choiceBtnActive]} onPress={() => setLikeDislike(3)}>
+                <Ionicons name="thumbs-up-outline" size={18} color={likeDislike === 3 ? '#FFF' : '#8A9399'} />
+                <Text style={[styles.choiceText, likeDislike === 3 && styles.choiceTextActive]}>만족</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={[styles.choiceBtn, likeDislike === 1 && styles.choiceBtnActive]} onPress={() => setLikeDislike(1)}>
+                <Ionicons name="thumbs-down-outline" size={18} color={likeDislike === 1 ? '#FFF' : '#8A9399'} />
+                <Text style={[styles.choiceText, likeDislike === 1 && styles.choiceTextActive]}>불만족</Text>
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.label}>체감 난이도</Text>
+            <View style={styles.choiceRow}>
+              {[{ val: 1, text: '쉬움 (하)' }, { val: 2, text: '보통 (중)' }, { val: 3, text: '어려움 (상)' }].map((item) => (
+                <TouchableOpacity key={item.val} style={[styles.choiceBtn, diffResult === item.val && styles.choiceBtnActive]} onPress={() => setDiffResult(item.val)}>
+                  <Text style={[styles.choiceText, diffResult === item.val && styles.choiceTextActive]}>{item.text}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            <Text style={styles.label}>후기 코멘트</Text>
+            <TextInput
+              style={styles.commentInput}
+              placeholder="조리 후 느끼신 점을 공유해주세요."
+              placeholderTextColor="#A5ADB2"
+              value={comment}
+              onChangeText={setComment}
+              multiline
+            />
+            <TouchableOpacity style={styles.submitBtn} onPress={handleSubmitFeedback} activeOpacity={0.85}>
+              <Text style={styles.submitBtnText}>등록하기</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 50, paddingBottom: 15 },
-  backBtn: { width: 40, height: 40, justifyContent: 'center' },
-  headerTitle: { fontSize: 18, fontWeight: '800', color: '#111' },
+  container: { flex: 1, backgroundColor: '#FFFFFF' },
+  center: { justifyContent: 'center', alignItems: 'center' },
+
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 54, paddingBottom: 12 },
+  circleBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#F4F6F6', justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { fontSize: 17, fontWeight: '800', flex: 1, textAlign: 'center', marginHorizontal: 12, color: '#111' },
+
+  summaryCard: { marginHorizontal: 20, marginTop: 8, marginBottom: 24, padding: 20, backgroundColor: '#F4F6F6', borderRadius: 22 },
+  recipeTitle: { fontSize: 24, fontWeight: '800', color: '#111', marginBottom: 14, letterSpacing: -0.6 },
+  metaRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  metaChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#fff', paddingHorizontal: 11, paddingVertical: 7, borderRadius: 10 },
+  metaText: { fontSize: 12, color: '#444', fontWeight: '700', marginLeft: 5 },
+
+  sectionCard: { marginHorizontal: 20, marginBottom: 24 },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  sectionTitle: { fontSize: 17, fontWeight: '800', color: '#111', marginLeft: 8, letterSpacing: -0.3 },
   
-  imageSection: { marginHorizontal: 20, height: 240, borderRadius: 20, backgroundColor: '#F5F5F5', justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
-  mainImage: { width: '100%', height: '100%' },
-  arrowRightBtn: { position: 'absolute', right: 15, width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(0,0,0,0.1)', justifyContent: 'center', alignItems: 'center' },
+  // 식재료 칩 리스트 스타일 추가
+  ingredientGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, backgroundColor: '#fff', padding: 16, borderRadius: 16, borderWidth: 1, borderColor: '#EEF0F0' },
+  ingredientChip: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F9F9F9', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 12 },
+  ingredientChipText: { fontSize: 13, color: '#333', fontWeight: '600', marginLeft: 6 },
   
-  indicatorRow: { flexDirection: 'row', justifyContent: 'center', marginTop: 15, marginBottom: 25 },
-  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#E0E0E0', marginHorizontal: 4 },
-  dotActive: { backgroundColor: '#555' },
+  stepRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 10, backgroundColor: '#fff', padding: 14, borderRadius: 16, borderWidth: 1, borderColor: '#EEF0F0' },
+  stepBadge: { backgroundColor: Colors.light.primary, width: 26, height: 26, borderRadius: 13, justifyContent: 'center', alignItems: 'center', marginRight: 12, marginTop: 1 },
+  stepBadgeText: { color: '#FFF', fontSize: 12, fontWeight: '800' },
+  stepDesc: { flex: 1, fontSize: 14, color: '#333', lineHeight: 22 },
 
-  contentPadding: { paddingHorizontal: 20 },
-  nutritionTitle: { fontSize: 16, fontWeight: '800', color: '#111', marginBottom: 15 },
-  nutritionBox: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 25, borderBottomWidth: 1, borderBottomColor: '#F0F0F0' },
-  nutriItem: { flex: 1, alignItems: 'center' },
-  nutriValue: { fontSize: 16, fontWeight: '800', color: THEME_GREEN, marginTop: 6 },
-  nutriLabel: { fontSize: 12, color: THEME_GREEN, fontWeight: '600', marginTop: 2 },
-  divider: { width: 1, height: 40, backgroundColor: '#EEE' },
+  // paddingBottom 28 -> 48 수정
+  bottomBar: { flexDirection: 'row', gap: 10, paddingHorizontal: 20, paddingTop: 12, paddingBottom: 48, backgroundColor: '#fff', borderTopWidth: 1, borderTopColor: '#EEF0F0' },
+  actionBtn: { flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', height: 52, borderRadius: 16, gap: 6 },
+  actionBtnText: { fontSize: 14, fontWeight: '800' },
 
-  titleRow: { marginTop: 20, marginBottom: 15 },
-  recipeTitle: { fontSize: 24, fontWeight: '900', color: '#111', marginBottom: 8 },
-  ratingRow: { flexDirection: 'row', alignItems: 'center' },
-  ratingScore: { fontSize: 15, fontWeight: '700', color: THEME_GREEN, marginLeft: 6 },
-  reviewCount: { fontSize: 14, color: '#888', marginLeft: 8, textDecorationLine: 'underline' },
-
-  matchRateText: { fontSize: 15, fontWeight: '700', color: '#333', marginBottom: 10 },
-  ingredientsRow: { flexDirection: 'row', flexWrap: 'wrap', marginBottom: 30 },
-  ingChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 6, borderWidth: 1, borderColor: '#CCC', marginRight: 8, marginBottom: 8 },
-  ingChipText: { fontSize: 13, color: '#555', fontWeight: '600' },
-  ingChipMissing: { borderColor: '#FF3B30' },
-  ingChipTextMissing: { color: '#FF3B30' },
-
-  sectionTitle: { fontSize: 18, fontWeight: '800', color: '#111', marginBottom: 20 },
-  
-  stepsContainer: { paddingLeft: 10, position: 'relative', marginBottom: 30 },
-  stepVerticalLine: { position: 'absolute', left: 24, top: 10, bottom: 20, width: 1.5, backgroundColor: '#D4E2E1' },
-  stepItem: { flexDirection: 'row', marginBottom: 25 },
-  stepNumberCircle: { width: 28, height: 28, borderRadius: 8, backgroundColor: THEME_GREEN, justifyContent: 'center', alignItems: 'center', zIndex: 2 },
-  stepNumberText: { color: '#fff', fontSize: 14, fontWeight: '800' },
-  stepContent: { flex: 1, paddingLeft: 16, paddingTop: 2 },
-  stepTitle: { fontSize: 16, fontWeight: '800', color: '#222', marginBottom: 6 },
-  stepDesc: { fontSize: 14, color: '#777', lineHeight: 22 },
-
-  horizontalDivider: { height: 1, backgroundColor: '#EAEAEA', marginHorizontal: 20, marginBottom: 30 },
-
-  substituteTitle: { fontSize: 22, fontWeight: '900', color: '#111', marginBottom: 15 },
-  substituteHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  substituteCount: { fontSize: 18, fontWeight: '800', color: '#111' },
-  filterBtns: { flexDirection: 'row' },
-  actionBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5F5F5', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20 },
-  actionBtnText: { fontSize: 13, fontWeight: '600', color: '#333' },
-
-  subCard: { width: (SCREEN_WIDTH - 52) / 2, marginRight: 12 },
-  subImageWrapper: { width: '100%', height: 120, backgroundColor: '#F5F5F5', borderRadius: 12, overflow: 'hidden', marginBottom: 10 },
-  subImage: { width: '100%', height: '100%' },
-  subCardName: { fontSize: 16, fontWeight: '800', color: '#111', marginBottom: 4 },
-  subCardInfo: { fontSize: 12, color: '#666', marginBottom: 8 },
-  subCardQty: { fontSize: 14, fontWeight: '700', color: '#111' },
-  subCardStorage: { fontSize: 12, color: '#999', marginTop: 2, marginBottom: 6 },
-  dateRow: { flexDirection: 'row', alignItems: 'center' },
-  subCardDate: { fontSize: 11, color: '#666' }
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: '#FFF', borderTopLeftRadius: 28, borderTopRightRadius: 28, paddingHorizontal: 22, paddingTop: 10, paddingBottom: 32 },
+  modalHandle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, backgroundColor: '#E0E3E4', marginBottom: 14 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 },
+  modalTitle: { fontSize: 19, fontWeight: '800', color: '#111', letterSpacing: -0.3 },
+  modalCloseBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: '#F4F6F6', justifyContent: 'center', alignItems: 'center' },
+  label: { fontSize: 13, fontWeight: '700', color: '#555', marginTop: 14, marginBottom: 8, marginLeft: 2 },
+  choiceRow: { flexDirection: 'row', gap: 8, marginBottom: 4 },
+  choiceBtn: { flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, backgroundColor: '#F4F6F6', height: 46, borderRadius: 14 },
+  choiceBtnActive: { backgroundColor: Colors.light.primary },
+  choiceText: { fontSize: 12, color: '#7A8288', fontWeight: '600' },
+  choiceTextActive: { color: '#FFF', fontWeight: '800' },
+  commentInput: { backgroundColor: '#F4F6F6', borderRadius: 16, padding: 14, height: 96, textAlignVertical: 'top', fontSize: 14, color: '#111', marginBottom: 8 },
+  submitBtn: {
+    backgroundColor: Colors.light.primary, height: 54, borderRadius: 16, justifyContent: 'center', alignItems: 'center', marginTop: 16,
+    shadowColor: Colors.light.primary, shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.25, shadowRadius: 12, elevation: 4,
+  },
+  submitBtnText: { color: '#FFF', fontSize: 16, fontWeight: '800' },
 });
